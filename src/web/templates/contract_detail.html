@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}{{ contract.subject[:60] }} | Bosko Strážce{% endblock %}
+
+{% block content %}
+<div class="detail-header">
+    <h1>{{ contract.subject }}</h1>
+    <dl class="meta-list">
+        {% if contract.date_signed %}
+        <div>
+            <dt>Datum podpisu</dt>
+            <dd>{{ contract.date_signed }}</dd>
+        </div>
+        {% endif %}
+        {% if contract.date_published %}
+        <div>
+            <dt>Datum zveřejnění</dt>
+            <dd>{{ contract.date_published }}</dd>
+        </div>
+        {% endif %}
+        {% if contract.amount %}
+        <div>
+            <dt>Částka</dt>
+            <dd class="amount{% if contract.amount > 1000000 %} amount--large{% endif %}">
+                {{ "{:,.0f}".format(contract.amount).replace(",", " ") }} {{ contract.currency or "CZK" }}
+            </dd>
+        </div>
+        {% endif %}
+        <div>
+            <dt>Objednatel</dt>
+            <dd>{{ contract.publisher_name or "–" }} {% if contract.publisher_ico %}(IČO: {{ contract.publisher_ico }}){% endif %}</dd>
+        </div>
+        <div>
+            <dt>Dodavatel</dt>
+            <dd>{{ contract.counterparty_name or "–" }} {% if contract.counterparty_ico %}(IČO: {{ contract.counterparty_ico }}){% endif %}</dd>
+        </div>
+        {% if contract.source_url %}
+        <div>
+            <dt>Zdroj</dt>
+            <dd><a href="{{ contract.source_url }}" rel="noopener">Hlídač státu</a></dd>
+        </div>
+        {% endif %}
+    </dl>
+</div>
+
+{% if contract.linked_entities %}
+<div class="card">
+    <h2 class="card__title">Propojené subjekty</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Subjekt</th>
+                    <th>IČO</th>
+                    <th>Role</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in contract.linked_entities %}
+                <tr>
+                    <td><a href="/entity/{{ e.entity_id }}">{{ e.name }}</a></td>
+                    <td>{{ e.ico or "–" }}</td>
+                    <td><span class="badge badge--entity">{{ e.role }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if contract.fulltext %}
+<div class="card">
+    <h2 class="card__title">Text smlouvy</h2>
+    <pre style="white-space: pre-wrap; font-size: 0.85rem; max-height: 500px; overflow-y: auto;">{{ contract.fulltext[:8000] }}</pre>
+</div>
+{% endif %}
+{% endblock %}

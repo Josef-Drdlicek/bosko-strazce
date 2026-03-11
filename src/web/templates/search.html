@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Hledat{% if query %}: {{ query }}{% endif %} | Bosko Strážce{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Hledat</h1>
+
+<form class="search-form" action="/search" method="get">
+    <input type="text" name="q" value="{{ query }}" placeholder="Hledat dokumenty, smlouvy, subjekty..." autofocus>
+    <button type="submit" class="btn btn--primary">Hledat</button>
+</form>
+
+{% if query %}
+
+{% if results.documents %}
+<div class="card">
+    <h2 class="card__title">Dokumenty ({{ results.documents | length }})</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Název</th>
+                    <th>Sekce</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in results.documents %}
+                <tr>
+                    <td>{{ doc.published_date or "–" }}</td>
+                    <td><a href="/document/{{ doc.id }}">{{ doc.title[:80] }}</a></td>
+                    <td><span class="badge badge--section">{{ doc.section }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if results.contracts %}
+<div class="card">
+    <h2 class="card__title">Smlouvy ({{ results.contracts | length }})</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Předmět</th>
+                    <th>Protistrana</th>
+                    <th>Částka</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in results.contracts %}
+                <tr>
+                    <td>{{ c.date_signed or "–" }}</td>
+                    <td><a href="/contract/{{ c.id }}">{{ c.subject[:60] }}</a></td>
+                    <td>{{ c.counterparty_name or "–" }}</td>
+                    <td class="amount">{% if c.amount %}{{ "{:,.0f}".format(c.amount).replace(",", " ") }} Kč{% else %}–{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if results.entities %}
+<div class="card">
+    <h2 class="card__title">Subjekty ({{ results.entities | length }})</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Název</th>
+                    <th>IČO</th>
+                    <th>Typ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in results.entities %}
+                <tr>
+                    <td><a href="/entity/{{ e.id }}">{{ e.name }}</a></td>
+                    <td>{{ e.ico or "–" }}</td>
+                    <td><span class="badge badge--entity">{{ e.entity_type }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if not results.documents and not results.contracts and not results.entities %}
+<div class="empty-state">
+    Žádné výsledky pro "{{ query }}".
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

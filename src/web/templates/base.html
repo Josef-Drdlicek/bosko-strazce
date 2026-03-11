@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Bosko Strážce{% endblock %}</title>
+    <meta name="description" content="{% block description %}Transparentní archiv veřejných dat města Boskovice{% endblock %}">
+    <link rel="canonical" href="{{ request.url }}">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header__inner">
+            <a href="/" class="header__brand">Bosko Strážce</a>
+            <nav class="header__nav">
+                <a href="/" {% if request.url.path == "/" %}class="active"{% endif %}>Přehled</a>
+                <a href="/documents" {% if "/documents" in request.url.path %}class="active"{% endif %}>Dokumenty</a>
+                <a href="/contracts" {% if "/contracts" in request.url.path %}class="active"{% endif %}>Smlouvy</a>
+                <a href="/entities" {% if "/entities" in request.url.path %}class="active"{% endif %}>Subjekty</a>
+                <a href="/search" {% if "/search" in request.url.path %}class="active"{% endif %}>Hledat</a>
+            </nav>
+        </div>
+    </header>
+    <main class="main">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

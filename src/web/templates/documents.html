@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Dokumenty{% if current_section %} – {{ current_section }}{% endif %} | Bosko Strážce{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Dokumenty</h1>
+
+<form class="search-form" action="/documents" method="get">
+    <input type="text" name="q" value="{{ query }}" placeholder="Hledat v dokumentech...">
+    <button type="submit" class="btn btn--primary">Hledat</button>
+</form>
+
+<div class="section-filter">
+    <a href="/documents" {% if not current_section %}class="active"{% endif %}>Vše</a>
+    {% for s in sections %}
+    <a href="/documents?section={{ s.section }}" {% if current_section == s.section %}class="active"{% endif %}>
+        {{ s.section }} ({{ s.cnt }})
+    </a>
+    {% endfor %}
+</div>
+
+{% if documents %}
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Název</th>
+                    <th>Sekce</th>
+                    <th>Odbor</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in documents %}
+                <tr>
+                    <td>{{ doc.published_date or "–" }}</td>
+                    <td><a href="/document/{{ doc.id }}">{{ doc.title[:80] }}</a></td>
+                    <td><span class="badge badge--section">{{ doc.section }}</span></td>
+                    <td>{{ doc.department or "–" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% set total_pages = (total // per_page) + (1 if total % per_page else 0) %}
+{% if total_pages > 1 %}
+<div class="pagination">
+    {% if page > 1 %}
+    <a href="/documents?{% if current_section %}section={{ current_section }}&{% endif %}{% if query %}q={{ query }}&{% endif %}page={{ page - 1 }}">Předchozí</a>
+    {% endif %}
+    <span class="current">{{ page }} / {{ total_pages }}</span>
+    {% if page < total_pages %}
+    <a href="/documents?{% if current_section %}section={{ current_section }}&{% endif %}{% if query %}q={{ query }}&{% endif %}page={{ page + 1 }}">Další</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">Žádné dokumenty nenalezeny.</div>
+{% endif %}
+{% endblock %}

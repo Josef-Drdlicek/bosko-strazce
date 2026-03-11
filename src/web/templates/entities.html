@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Subjekty | Bosko Strážce{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Subjekty</h1>
+
+{% if entities %}
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Název</th>
+                    <th>IČO</th>
+                    <th>Typ</th>
+                    <th>Propojení</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in entities %}
+                <tr>
+                    <td><a href="/entity/{{ e.id }}">{{ e.name }}</a></td>
+                    <td>{{ e.ico or "–" }}</td>
+                    <td><span class="badge badge--entity">{{ e.entity_type }}</span></td>
+                    <td>{{ e.link_count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% set total_pages = (total // per_page) + (1 if total % per_page else 0) %}
+{% if total_pages > 1 %}
+<div class="pagination">
+    {% if page > 1 %}
+    <a href="/entities?page={{ page - 1 }}">Předchozí</a>
+    {% endif %}
+    <span class="current">{{ page }} / {{ total_pages }}</span>
+    {% if page < total_pages %}
+    <a href="/entities?page={{ page + 1 }}">Další</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    Zatím žádné subjekty. Spusťte <code>python main.py collect-contracts</code> a <code>python main.py enrich-entities</code>.
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}{{ entity.name }} | Bosko Strážce{% endblock %}
+
+{% block content %}
+<div class="detail-header">
+    <h1>{{ entity.name }}</h1>
+    <dl class="meta-list">
+        {% if entity.ico %}
+        <div>
+            <dt>IČO</dt>
+            <dd>{{ entity.ico }}</dd>
+        </div>
+        {% endif %}
+        <div>
+            <dt>Typ</dt>
+            <dd><span class="badge badge--entity">{{ entity.entity_type }}</span></dd>
+        </div>
+        {% if entity.source %}
+        <div>
+            <dt>Zdroj</dt>
+            <dd>{{ entity.source }}</dd>
+        </div>
+        {% endif %}
+    </dl>
+</div>
+
+{% if entity.metadata_json %}
+{% set meta = entity.metadata_json | tojson %}
+<div class="card">
+    <h2 class="card__title">Detaily z ARES</h2>
+    <dl class="meta-list">
+        {% set parsed = entity.metadata_json %}
+        <div>
+            <dt>Data</dt>
+            <dd><pre style="font-size: 0.8rem; white-space: pre-wrap;">{{ entity.metadata_json }}</pre></dd>
+        </div>
+    </dl>
+</div>
+{% endif %}
+
+{% if contracts %}
+<div class="card">
+    <h2 class="card__title">Smlouvy ({{ contracts | length }})</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Předmět</th>
+                    <th>Částka</th>
+                    <th>Role</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in contracts %}
+                <tr>
+                    <td>{{ c.date_signed or "–" }}</td>
+                    <td><a href="/contract/{{ c.id }}">{{ c.subject[:60] }}</a></td>
+                    <td class="amount">{% if c.amount %}{{ "{:,.0f}".format(c.amount).replace(",", " ") }} Kč{% else %}–{% endif %}</td>
+                    <td><span class="badge badge--contract">{{ c.role }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if documents %}
+<div class="card">
+    <h2 class="card__title">Zmíněn v dokumentech ({{ documents | length }})</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Název</th>
+                    <th>Sekce</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in documents %}
+                <tr>
+                    <td>{{ d.published_date or "–" }}</td>
+                    <td><a href="/document/{{ d.id }}">{{ d.title[:60] }}</a></td>
+                    <td><span class="badge badge--section">{{ d.section }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

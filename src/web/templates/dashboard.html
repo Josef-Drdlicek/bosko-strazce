@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Přehled | Bosko Strážce{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Přehled</h1>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-card__value">{{ stats.documents }}</div>
+        <div class="stat-card__label">Dokumentů</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card__value">{{ stats.contracts }}</div>
+        <div class="stat-card__label">Smluv</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card__value">{{ stats.entities }}</div>
+        <div class="stat-card__label">Subjektů</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card__value">{{ "{:,.0f}".format(stats.contract_total_czk).replace(",", " ") }} Kč</div>
+        <div class="stat-card__label">Celkem ve smlouvách</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2 class="card__title">Dokumenty dle sekcí</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Sekce</th>
+                    <th>Počet</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in stats.sections %}
+                <tr>
+                    <td><a href="/documents?section={{ s.section }}">{{ s.section }}</a></td>
+                    <td>{{ s.cnt }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <h2 class="card__title">Nejnovější dokumenty</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Název</th>
+                    <th>Sekce</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in recent_docs %}
+                <tr>
+                    <td>{{ doc.published_date or "–" }}</td>
+                    <td><a href="/document/{{ doc.id }}">{{ doc.title[:80] }}</a></td>
+                    <td><span class="badge badge--section">{{ doc.section }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if recent_contracts %}
+<div class="card">
+    <h2 class="card__title">Nejnovější smlouvy</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Předmět</th>
+                    <th>Protistrana</th>
+                    <th>Částka</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in recent_contracts %}
+                <tr>
+                    <td>{{ c.date_signed or "–" }}</td>
+                    <td><a href="/contract/{{ c.id }}">{{ c.subject[:60] }}</a></td>
+                    <td>{{ c.counterparty_name or "–" }}</td>
+                    <td class="amount">{% if c.amount %}{{ "{:,.0f}".format(c.amount).replace(",", " ") }} {{ c.currency }}{% else %}–{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}{{ doc.title[:60] }} | Bosko Strážce{% endblock %}
+{% block description %}{{ doc.title }} – {{ doc.section }}{% endblock %}
+
+{% block content %}
+<div class="detail-header">
+    <h1>{{ doc.title }}</h1>
+    <dl class="meta-list">
+        <div>
+            <dt>Sekce</dt>
+            <dd><span class="badge badge--section">{{ doc.section }}</span></dd>
+        </div>
+        {% if doc.published_date %}
+        <div>
+            <dt>Datum</dt>
+            <dd>{{ doc.published_date }}</dd>
+        </div>
+        {% endif %}
+        {% if doc.department %}
+        <div>
+            <dt>Odbor</dt>
+            <dd>{{ doc.department }}</dd>
+        </div>
+        {% endif %}
+        {% if doc.valid_until %}
+        <div>
+            <dt>Relevantní do</dt>
+            <dd>{{ doc.valid_until }}</dd>
+        </div>
+        {% endif %}
+        <div>
+            <dt>Zdroj</dt>
+            <dd><a href="{{ doc.source_url }}" rel="noopener">{{ doc.source_url }}</a></dd>
+        </div>
+    </dl>
+</div>
+
+{% if doc.attachments %}
+<div class="card">
+    <h2 class="card__title">Přílohy ({{ doc.attachments | length }})</h2>
+    <ul class="attachments-list">
+        {% for att in doc.attachments %}
+        <li>
+            <a href="{{ att.url }}" rel="noopener">{{ att.filename }}</a>
+            {% if att.size_bytes %}
+            <span style="color: var(--color-text-secondary); font-size: 0.8rem;">
+                ({{ "{:,.0f}".format(att.size_bytes / 1024).replace(",", " ") }} KB)
+            </span>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% if doc.linked_entities %}
+<div class="card">
+    <h2 class="card__title">Propojené subjekty</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Subjekt</th>
+                    <th>IČO</th>
+                    <th>Role</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in doc.linked_entities %}
+                <tr>
+                    <td><a href="/entity/{{ e.entity_id }}">{{ e.name }}</a></td>
+                    <td>{{ e.ico or "–" }}</td>
+                    <td><span class="badge badge--entity">{{ e.role }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if doc.fulltext %}
+<div class="card">
+    <h2 class="card__title">Extrahovaný text</h2>
+    <pre style="white-space: pre-wrap; font-size: 0.85rem; max-height: 500px; overflow-y: auto;">{{ doc.fulltext[:5000] }}</pre>
+</div>
+{% endif %}
+{% endblock %}
