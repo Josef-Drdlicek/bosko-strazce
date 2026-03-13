@@ -57,17 +57,24 @@ Implementovány kolektory pro:
 
 > Ke spuštění sběru smluv a dotací je potřeba nastavit `HLIDAC_STATU_TOKEN` v `.env`.
 
-### Webové rozhraní
+### Webové rozhraní (Laravel)
 
-FastAPI + Jinja2 SSR webové UI:
-- `/` -- Dashboard (statistiky, poslední dokumenty a smlouvy)
-- `/documents` -- Procházení dokumentů (filtry dle sekce, fulltext)
-- `/document/{id}` -- Detail dokumentu s přílohami a propojenými subjekty
-- `/contracts` -- Procházení smluv (částka, datum, protistrana)
-- `/contract/{id}` -- Detail smlouvy
-- `/entities` -- Procházení subjektů (firmy, organizace)
-- `/entity/{id}` -- Detail subjektu se všemi propojeními
-- `/search` -- Globální vyhledávání přes dokumenty, smlouvy i subjekty
+Laravel 12 + Blade + Tailwind CSS (nahrazuje FastAPI + Jinja2):
+- `/` -- Dashboard (statistiky, poslední dokumenty, smlouvy, top dodavatelé)
+- `/documents` -- Procházení dokumentů (filtry dle sekce, fulltext, paginace)
+- `/documents/{id}` -- Detail dokumentu s přílohami a propojenými subjekty
+- `/contracts` -- Procházení smluv (částka, datum, protistrana, paginace)
+- `/contracts/{id}` -- Detail smlouvy
+- `/entities` -- Procházení subjektů (filtry dle typu, vyhledávání)
+- `/entities/{id}` -- Detail subjektu se všemi propojeními (smlouvy, dokumenty, dotace)
+- `/search` -- Globální vyhledávání přes dokumenty, smlouvy, subjekty i dotace
+
+### REST API
+
+- `/api/stats` -- Celkové statistiky (počty, součty částek, sekce)
+- `/api/entities` -- Seznam subjektů (filtry, paginace)
+- `/api/entities/{id}` -- Detail subjektu
+- `/api/entities/{id}/relations` -- Všechny vztahy subjektu s napojenými záznamy
 
 ---
 
@@ -75,38 +82,36 @@ FastAPI + Jinja2 SSR webové UI:
 
 ```
 bosko-strazce/
-├── main.py                        # CLI (16 příkazů)
+├── main.py                        # Python CLI (16 příkazů pro sběr dat)
 ├── requirements.txt               # Python závislosti
 ├── .env.example                   # Šablona pro API klíče
 ├── .gitignore
 │
-├── src/
+├── src/                           # Python sběr dat (stále aktivní)
 │   ├── config.py                  # URL konstanty, env proměnné, nastavení
-│   ├── models.py                  # Doménové entity (Document, Attachment, Entity, Contract, Subsidy, EntityLink)
-│   ├── database.py                # SQLite repository (6 tabulek, CRUD, search, stats, migrace)
+│   ├── models.py                  # Doménové entity (dataclasses)
+│   ├── database.py                # SQLite repository (6 tabulek)
 │   ├── downloader.py              # HTTP klient s rate limiting
-│   ├── deduplication.py           # Detekce duplicit (dle file URL + title+date)
-│   │
-│   ├── collectors/
-│   │   ├── uredni_deska.py        # JSON-LD API
-│   │   ├── zapisy.py              # Zápisy ZM a RM (vylepšená metadata)
-│   │   ├── documents.py           # Vyhlášky, rozpočty, poskytnuté informace (vylepšené titulky)
-│   │   ├── archive.py             # Archiv úřední desky
-│   │   ├── hlidac_smluv.py        # Registr smluv via Hlídač státu API
-│   │   ├── ares.py                # ARES REST API (detail firem dle IČO)
-│   │   └── cedr.py                # Dotace via Hlídač státu API
-│   │
-│   ├── extractors/
-│   │   ├── pdf.py                 # Extrakce textu z PDF/DOCX/RTF/HTML
-│   │   └── entity_extractor.py    # Regex extrakce IČO z fulltextu
-│   │
-│   └── web/
-│       ├── app.py                 # FastAPI aplikace (7 stránek)
-│       ├── templates/             # Jinja2 HTML šablony
-│       └── static/                # CSS (responsive, mobile-first)
+│   ├── deduplication.py           # Detekce duplicit
+│   ├── collectors/                # Kolektory dat
+│   └── extractors/                # Extraktory textu a entit
+│
+├── laravel/                       # Laravel webová aplikace (nový hlavní stack)
+│   ├── app/
+│   │   ├── Models/                # Eloquent modely (6 modelů)
+│   │   ├── Http/Controllers/      # Web controllery (5) + API (2)
+│   │   └── Console/Commands/      # Artisan příkazy (import, collect)
+│   ├── database/
+│   │   ├── migrations/            # Migrace (6 tabulek)
+│   │   └── database.sqlite        # Laravel SQLite databáze
+│   ├── resources/views/           # Blade šablony + Tailwind CSS
+│   ├── routes/
+│   │   ├── web.php                # Webové routes
+│   │   └── api.php                # API routes
+│   └── public/                    # Veřejný adresář (Vite build)
 │
 └── data/
-    ├── db/boskovice.db            # SQLite databáze
+    ├── db/boskovice.db            # Legacy Python SQLite databáze
     └── pdf/                       # Stažené soubory (~1 874 souborů)
 ```
 
@@ -117,7 +122,13 @@ bosko-strazce/
 ### Předpoklady
 
 ```bash
+# Python kolektory
 python -m pip install -r requirements.txt
+
+# Laravel aplikace
+cd laravel
+composer install
+npm install && npm run build
 ```
 
 ### Nastavení API klíčů
@@ -127,14 +138,10 @@ cp .env.example .env
 # Editovat .env a nastavit HLIDAC_STATU_TOKEN
 ```
 
-### Příkazy
+### Sběr dat (Python)
 
 ```bash
 # Sběr dat z webu města
-python main.py collect-uredni-deska
-python main.py collect-zapisy
-python main.py collect-documents
-python main.py collect-archive
 python main.py collect-all            # Vše najednou + stažení + extrakce
 
 # Sběr externích dat (vyžaduje HLIDAC_STATU_TOKEN)
@@ -147,13 +154,22 @@ python main.py extract-text           # Extrahovat text ze souborů
 python main.py extract-entities       # Najít IČO v textech dokumentů
 python main.py enrich-entities        # Doplnit info z ARES
 python main.py deduplicate            # Označit duplicity
+```
 
-# Zobrazení a vyhledávání
-python main.py stats
-python main.py search "klíčové slovo"
+### Laravel webová aplikace
+
+```bash
+cd laravel
+
+# Import dat z Python databáze do Laravelu
+php artisan bosko:import
+
+# Spuštění kolektorů přes Laravel
+php artisan bosko:collect collect-all
+php artisan bosko:collect collect-contracts
 
 # Webové rozhraní
-python main.py serve --port 8000      # http://localhost:8000
+php artisan serve --port=8000         # http://localhost:8000
 ```
 
 ---
@@ -256,21 +272,43 @@ python main.py serve --port 8000      # http://localhost:8000
 
 ### Technologický stack
 
+#### Sběr dat (Python — stále aktivní)
+
 - Python 3.14
 - requests + BeautifulSoup4 + lxml
 - pymupdf (PDF text)
-- FastAPI + Jinja2 + uvicorn (web UI)
 - python-dotenv (env proměnné)
 - SQLite (data/db/boskovice.db)
+- CLI přes argparse v `main.py`
+
+#### Webová aplikace (Laravel — nový hlavní stack)
+
+- PHP 8.3 + Laravel 12
+- Eloquent ORM (6 modelů: Document, Attachment, Entity, Contract, Subsidy, EntityLink)
+- Blade šablony + Tailwind CSS 4 (Vite build)
+- SQLite (laravel/database/database.sqlite)
+- REST API (`/api/stats`, `/api/entities`, `/api/entities/{id}/relations`)
+- Artisan příkazy:
+  - `php artisan bosko:import` — import z legacy Python databáze
+  - `php artisan bosko:collect {command}` — spouštění Python kolektorů
 
 ### Konvence kódu
 
-- Čistá architektura: kolektory v `src/collectors/`, extraktory v `src/extractors/`, web v `src/web/`
+#### Python (sběr dat)
+
+- Čistá architektura: kolektory v `src/collectors/`, extraktory v `src/extractors/`
 - Každý kolektor má metodu `collect() -> int`
 - Repository pattern v `Database` třídě
 - HTTP throttling v `Downloader` (1 req/s pro web města, 0.15s pro ARES)
 - Doménové entity jako dataclasses v `src/models.py`
-- CLI přes argparse v `main.py`
+
+#### Laravel (web + API)
+
+- Eloquent modely s relacemi v `app/Models/`
+- Controllers v `app/Http/Controllers/` (5 web + 2 API)
+- Blade šablony v `resources/views/` s Tailwind CSS
+- Migrační soubory v `database/migrations/`
+- Artisan commands v `app/Console/Commands/`
 
 ---
 
@@ -280,30 +318,32 @@ python main.py serve --port 8000      # http://localhost:8000
 
 1. Zaregistrovat se na https://www.hlidacstatu.cz/api
 2. Nastavit token v `.env`
-3. Spustit `python main.py collect-contracts` a `python main.py collect-subsidies`
-4. Spustit `python main.py enrich-entities`
+3. Spustit `php artisan bosko:collect collect-contracts` a `php artisan bosko:collect collect-subsidies`
+4. Spustit `php artisan bosko:import` pro synchronizaci dat do Laravelu
 
-### Priorita 2: Zlepšit pokrytí fulltextu
+### Priorita 2: Rozšířit doménový model (NEXT_STEPS_RELATIONS.md)
 
-- Integrace Tesseract OCR pro skenované PDF (aktuálně ~23 z 45 nelze extrahovat)
-- Rozšířit `get_documents_without_fulltext` o více souborových typů
+- Přidat Eloquent modely: Person, CityDepartment, Project, Property, Event
+- Přidat typy vztahů: statutár firmy, vlastník nemovitosti, zastupitel, člen komise
+- Integrace Justice.cz, Volby.cz, ČÚZK
+- Implementovat signály (koncentrace zakázek, střety zájmů, časové sekvence)
 
-### Priorita 3: Pokročilá analýza
+### Priorita 3: Zlepšit pokrytí fulltextu
 
-- Detekce vzorců: opakovaní dodavatelé, neobvyklé částky, časové korelace
-- Cross-referencing: hlasování zastupitelů vs. smlouvy s propojenými firmami
+- Integrace Tesseract OCR pro skenované PDF
+- Rozšířit entity extrakci o jména osob (NER)
+
+### Priorita 4: Pokročilá analýza a UX
+
 - Timeline view: chronologické zobrazení rozhodnutí a smluv
+- Case view: vizualizace konkrétního signálu
+- Grafová vizualizace vztahů (např. D3.js, Sigma.js)
+- Export reportů (PDF, JSON)
 
-### Priorita 4: Další datové zdroje
-
-- Starý archiv úřední desky (2014-2025)
-- Zápisy komisí a výborů
-- Věstník veřejných zakázek (vvz.nipez.cz)
-- Katastr nemovitostí (ČÚZK)
-- Volby.cz (složení zastupitelstva)
-
-### Priorita 5: Multi-city
+### Priorita 5: Multi-city a produkce
 
 - Abstrakce konfigurace pro jiná města (IČO, URL patterny)
-- Sdílený web UI s výběrem města
-- PostgreSQL místo SQLite pro škálování
+- PostgreSQL místo SQLite
+- Laravel multi-tenancy
+- Autentizace a autorizace (Laravel Sanctum)
+- Nasazení (Laravel Forge / Docker)
