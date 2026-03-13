@@ -33,7 +33,7 @@ class CedrCollector:
             if data is None:
                 break
 
-            results = data.get("Results", [])
+            results = data.get("results", [])
             if not results:
                 break
 
@@ -49,8 +49,8 @@ class CedrCollector:
                 self._link_recipient(subsidy, subsidy_id)
                 saved += 1
 
-            total = data.get("Total", 0)
-            page_size = data.get("PageSize", 50) or 50
+            total = data.get("total", 0)
+            page_size = len(results)
             logger.info(
                 "Page %d: fetched %d subsidies (total available: %d)",
                 page, len(results), total,
@@ -106,30 +106,26 @@ class CedrCollector:
 
 
 def _parse_subsidy(item: dict) -> Optional[Subsidy]:
-    external_id = item.get("idDotace") or item.get("Id")
+    external_id = item.get("id")
     if not external_id:
         return None
 
-    title = item.get("nazevProjektu") or item.get("nazev") or "Bez názvu"
+    title = item.get("projectName") or item.get("projectDescription") or "Bez názvu"
 
-    recipient = item.get("prijemce", {}) or {}
-    recipient_ico = recipient.get("ico")
-    recipient_name = recipient.get("obchodniJmeno") or recipient.get("jmeno")
+    recipient = item.get("recipient", {}) or {}
+    recipient_ico = recipient.get("ico") if isinstance(recipient, dict) else None
+    recipient_name = (
+        recipient.get("name") or recipient.get("obchodniJmeno")
+        if isinstance(recipient, dict) else None
+    )
 
-    program = item.get("program", {}) or {}
-    program_name = program.get("nazev")
-    provider = item.get("dpiPoskytovatel") or program.get("nazevPoskytovatele")
+    program_name = item.get("programName")
+    provider = item.get("subsidyProvider")
 
-    rozhodnuti = item.get("rozhodnuti", []) or []
-    amount = None
-    year = None
-    for r in rozhodnuti:
-        castka = r.get("castkaRozhodnuta") or r.get("castkaPozadovana")
-        if castka:
-            amount = (amount or 0) + castka
-        rok = r.get("rokRozhodnuti")
-        if rok and (year is None or rok > year):
-            year = rok
+    raw_amount = item.get("subsidyAmount") or item.get("assumedAmount")
+    amount = float(raw_amount) if isinstance(raw_amount, (int, float)) else None
+
+    year = item.get("approvedYear")
 
     source_url = f"https://www.hlidacstatu.cz/dotace/detail/{external_id}"
 

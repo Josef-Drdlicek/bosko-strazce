@@ -34,7 +34,7 @@ class HlidacSmluvCollector:
             if data is None:
                 break
 
-            results = data.get("Results", [])
+            results = data.get("results", [])
             if not results:
                 break
 
@@ -50,8 +50,8 @@ class HlidacSmluvCollector:
                 self._link_entities(contract, contract_id)
                 saved += 1
 
-            total = data.get("Total", 0)
-            page_size = data.get("PageSize", 50) or 50
+            total = data.get("total", 0)
+            page_size = len(results)
             logger.info(
                 "Page %d: fetched %d contracts (total available: %d)",
                 page, len(results), total,
@@ -69,7 +69,7 @@ class HlidacSmluvCollector:
         try:
             response = self._dl._session.get(
                 url,
-                params={"dotaz": f"ico:{ico}", "strana": page, "razeni": "1"},
+                params={"dotaz": f"ico:{ico}", "strana": page, "razeni": "0"},
                 headers={
                     "Authorization": f"Token {HLIDAC_STATU_TOKEN}",
                     "User-Agent": self._dl._session.headers.get("User-Agent", ""),
@@ -118,7 +118,7 @@ class HlidacSmluvCollector:
 
 
 def _parse_contract(item: dict) -> Optional[Contract]:
-    external_id = item.get("Id")
+    external_id = item.get("id")
     if not external_id:
         return None
 
@@ -126,20 +126,23 @@ def _parse_contract(item: dict) -> Optional[Contract]:
     if not subject:
         subject = "Bez předmětu"
 
-    amount = item.get("hodnotaBezDph") or item.get("hodnotaVcetneDph")
-    currency = item.get("cipiSmloupiodMena", "CZK") or "CZK"
+    raw_amount = item.get("hodnotaBezDph") or item.get("hodnotaVcetneDph")
+    amount = float(raw_amount) if isinstance(raw_amount, (int, float)) else None
 
-    date_signed = _parse_date(item.get("datumUzavreni"))
-    date_published = _parse_date(item.get("casZverejneni"))
+    raw_currency = item.get("ciziMena")
+    currency = str(raw_currency) if isinstance(raw_currency, str) and raw_currency else "CZK"
 
-    publisher = _extract_party(item, "Platce")
-    counterparty = _extract_party(item, "Prijemce")
+    date_signed = _safe_parse_date(item.get("datumUzavreni"))
+    date_published = _safe_parse_date(item.get("casZverejneni"))
+
+    publisher_name, publisher_ico = _extract_platce(item)
+    counterparty_name, counterparty_ico = _extract_prijemce(item)
 
     source_url = f"https://www.hlidacstatu.cz/Detail/{external_id}"
 
     texts = []
-    for attachment in item.get("Prilohy", []) or []:
-        text = attachment.get("PlainTextContent")
+    for attachment in item.get("prilohy", []) or []:
+        text = attachment.get("plainTextContent") or attachment.get("PlainTextContent")
         if text:
             texts.append(text)
     fulltext = "\n\n".join(texts) if texts else None
@@ -151,39 +154,36 @@ def _parse_contract(item: dict) -> Optional[Contract]:
         currency=currency,
         date_signed=date_signed,
         date_published=date_published,
-        publisher_ico=publisher[1],
-        publisher_name=publisher[0],
-        counterparty_ico=counterparty[1],
-        counterparty_name=counterparty[0],
+        publisher_ico=publisher_ico,
+        publisher_name=publisher_name,
+        counterparty_ico=counterparty_ico,
+        counterparty_name=counterparty_name,
         source_url=source_url,
         fulltext=fulltext,
     )
 
 
-def _extract_party(item: dict, role_key: str) -> tuple[Optional[str], Optional[str]]:
-    smluvni_strany = item.get("Subjekt") if role_key == "Platce" else None
-    if smluvni_strany:
-        return smluvni_strany.get("nazev"), smluvni_strany.get("ico")
-
-    for strana in item.get("SmluvniStrany", []) or []:
-        if role_key == "Platce" and strana.get("prijemce") is False:
-            return strana.get("nazev"), strana.get("ico")
-        if role_key == "Prijemce" and strana.get("prijemce") is True:
-            return strana.get("nazev"), strana.get("ico")
-
-    parties = item.get("SmluvniStrany", []) or []
-    if parties:
-        idx = 0 if role_key == "Platce" else -1
-        party = parties[idx] if parties else {}
-        return party.get("nazev"), party.get("ico")
-
+def _extract_platce(item: dict) -> tuple[Optional[str], Optional[str]]:
+    platce = item.get("platce")
+    if isinstance(platce, dict):
+        return platce.get("nazev"), platce.get("ico")
     return None, None
 
 
-def _parse_date(value) -> Optional[date]:
-    if not value:
+def _extract_prijemce(item: dict) -> tuple[Optional[str], Optional[str]]:
+    prijemce = item.get("prijemce")
+    if isinstance(prijemce, list) and prijemce:
+        first = prijemce[0]
+        return first.get("nazev"), first.get("ico")
+    if isinstance(prijemce, dict):
+        return prijemce.get("nazev"), prijemce.get("ico")
+    return None, None
+
+
+def _safe_parse_date(value) -> Optional[date]:
+    if not value or not isinstance(value, str):
         return None
     try:
-        return date.fromisoformat(str(value)[:10])
+        return date.fromisoformat(value[:10])
     except (ValueError, TypeError):
         return None
