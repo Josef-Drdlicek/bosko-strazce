@@ -36,24 +36,16 @@ class Entity extends Model
         return $this->hasMany(EntityLink::class)->where('linked_type', 'subsidy');
     }
 
-    public function contracts()
-    {
-        return Contract::whereIn('id', $this->links()->where('linked_type', 'contract')->pluck('linked_id'));
-    }
-
-    public function documents()
-    {
-        return Document::whereIn('id', $this->links()->where('linked_type', 'document')->pluck('linked_id'));
-    }
-
-    public function subsidies()
-    {
-        return Subsidy::whereIn('id', $this->links()->where('linked_type', 'subsidy')->pluck('linked_id'));
-    }
-
     public function scopeSearch($query, string $term)
     {
-        return $query->where('name', 'like', "%{$term}%")
-            ->orWhere('ico', 'like', "%{$term}%");
+        return $query->where(function ($q) use ($term) {
+            $q->where('name', 'like', "%{$term}%")
+                ->orWhere('ico', 'like', "%{$term}%");
+        });
+    }
+
+    public function hasAresData(): bool
+    {
+        return is_array($this->metadata_json) && !empty($this->metadata_json);
     }
 }

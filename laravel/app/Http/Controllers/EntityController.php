@@ -2,29 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Contract;
-use App\Models\Document;
 use App\Models\Entity;
-use App\Models\Subsidy;
+use App\Services\AresService;
+use App\Services\EntityService;
 use Illuminate\Http\Request;
 
 class EntityController extends Controller
 {
+    public function __construct(
+        private readonly EntityService $entityService,
+        private readonly AresService $aresService,
+    ) {}
+
     public function index(Request $request)
     {
-        $query = Entity::query();
-
-        if ($request->filled('q')) {
-            $query->search($request->input('q'));
-        }
-
-        if ($request->filled('type')) {
-            $query->where('entity_type', $request->input('type'));
-        }
-
         return view('entities.index', [
-            'entities' => $query->orderBy('name')->paginate(25)->withQueryString(),
-            'types' => Entity::distinct()->pluck('entity_type')->sort(),
+            'entities' => $this->entityService->getFilteredPaginated($request->all()),
+            'types' => $this->entityService->getAvailableTypes(),
             'currentType' => $request->input('type'),
             'searchQuery' => $request->input('q'),
         ]);
@@ -32,18 +26,13 @@ class EntityController extends Controller
 
     public function show(Entity $entity)
     {
-        $links = $entity->links()->get();
+        if ($entity->ico && !$entity->hasAresData()) {
+            $this->aresService->enrichEntity($entity);
+            $entity->refresh();
+        }
 
-        $documentIds = $links->where('linked_type', 'document')->pluck('linked_id');
-        $contractIds = $links->where('linked_type', 'contract')->pluck('linked_id');
-        $subsidyIds = $links->where('linked_type', 'subsidy')->pluck('linked_id');
+        $data = $this->entityService->getWithRelations($entity);
 
-        return view('entities.show', [
-            'entity' => $entity,
-            'links' => $links,
-            'documents' => Document::whereIn('id', $documentIds)->get(),
-            'contracts' => Contract::whereIn('id', $contractIds)->get(),
-            'subsidies' => Subsidy::whereIn('id', $subsidyIds)->get(),
-        ]);
+        return view('entities.show', $data);
     }
 }

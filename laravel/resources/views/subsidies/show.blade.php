@@ -1,58 +1,60 @@
-<x-layouts.app :title="$contract->subject ?: 'Detail smlouvy'">
+<x-layouts.app :title="$subsidy->title">
 
     <div class="space-y-6">
-        <a href="{{ route('contracts.index') }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
+        <a href="{{ route('subsidies.index') }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
-            Zpět na smlouvy
+            Zpět na dotace
         </a>
 
         <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-6 sm:p-8">
-            <h1 class="text-2xl font-extrabold text-slate-900 sm:text-3xl">{{ $contract->subject ?: 'Bez předmětu' }}</h1>
+            <h1 class="text-2xl font-extrabold text-slate-900 sm:text-3xl">{{ $subsidy->title }}</h1>
 
             <dl class="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                @if($contract->amount)
-                    <div class="rounded-xl bg-emerald-50 p-5 ring-1 ring-inset ring-emerald-600/10">
-                        <dt class="text-sm font-medium text-emerald-700">Částka</dt>
-                        <dd class="mt-1 text-2xl font-extrabold text-emerald-900">
-                            {{ number_format($contract->amount, 0, ',', "\u{00a0}") }}&nbsp;{{ $contract->currency }}
+                @if($subsidy->amount)
+                    <div class="rounded-xl bg-amber-50 p-5 ring-1 ring-inset ring-amber-600/10">
+                        <dt class="text-sm font-medium text-amber-700">Částka</dt>
+                        <dd class="mt-1 text-2xl font-extrabold text-amber-900">
+                            {{ number_format($subsidy->amount, 0, ',', "\u{00a0}") }}&nbsp;CZK
                         </dd>
                     </div>
                 @endif
 
-                @if($contract->date_signed)
+                @if($subsidy->year)
                     <div class="rounded-xl bg-slate-50 p-5 ring-1 ring-inset ring-slate-200">
-                        <dt class="text-sm font-medium text-slate-500">Datum podpisu</dt>
-                        <dd class="mt-1 text-lg font-bold text-slate-900">{{ $contract->date_signed->format('j. n. Y') }}</dd>
+                        <dt class="text-sm font-medium text-slate-500">Rok</dt>
+                        <dd class="mt-1 text-lg font-bold text-slate-900">{{ $subsidy->year }}</dd>
                     </div>
                 @endif
 
-                @if($contract->publisher_name)
+                @if($subsidy->provider)
                     <div class="rounded-xl bg-slate-50 p-5 ring-1 ring-inset ring-slate-200">
-                        <dt class="text-sm font-medium text-slate-500">Objednatel</dt>
-                        <dd class="mt-1 text-lg font-bold text-slate-900">
-                            {{ $contract->publisher_name }}
-                            @if($contract->publisher_ico)
-                                <span class="block text-sm font-normal text-slate-400 mt-0.5">IČO: {{ $contract->publisher_ico }}</span>
+                        <dt class="text-sm font-medium text-slate-500">Poskytovatel</dt>
+                        <dd class="mt-1 text-sm font-bold text-slate-900">{{ $subsidy->provider }}</dd>
+                    </div>
+                @endif
+
+                @if($subsidy->recipient_name)
+                    <div class="rounded-xl bg-slate-50 p-5 ring-1 ring-inset ring-slate-200">
+                        <dt class="text-sm font-medium text-slate-500">Příjemce</dt>
+                        <dd class="mt-1 text-sm font-bold text-slate-900">
+                            {{ $subsidy->recipient_name }}
+                            @if($subsidy->recipient_ico)
+                                <span class="block text-xs font-normal text-slate-400 mt-0.5">IČO: {{ $subsidy->recipient_ico }}</span>
                             @endif
                         </dd>
                     </div>
                 @endif
 
-                @if($contract->counterparty_name)
-                    <div class="rounded-xl bg-slate-50 p-5 ring-1 ring-inset ring-slate-200">
-                        <dt class="text-sm font-medium text-slate-500">Dodavatel</dt>
-                        <dd class="mt-1 text-lg font-bold text-slate-900">
-                            {{ $contract->counterparty_name }}
-                            @if($contract->counterparty_ico)
-                                <span class="block text-sm font-normal text-slate-400 mt-0.5">IČO: {{ $contract->counterparty_ico }}</span>
-                            @endif
-                        </dd>
+                @if($subsidy->program)
+                    <div class="rounded-xl bg-slate-50 p-5 ring-1 ring-inset ring-slate-200 sm:col-span-2">
+                        <dt class="text-sm font-medium text-slate-500">Dotační program</dt>
+                        <dd class="mt-1 text-sm font-bold text-slate-900">{{ $subsidy->program }}</dd>
                     </div>
                 @endif
             </dl>
 
-            @if($contract->source_url)
-                <a href="{{ $contract->source_url }}" target="_blank" rel="noopener" class="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
+            @if($subsidy->source_url)
+                <a href="{{ $subsidy->source_url }}" target="_blank" rel="noopener" class="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
                     Zobrazit na Hlídači státu
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
                 </a>
@@ -73,16 +75,6 @@
                         </a>
                     @endforeach
                 </div>
-            </section>
-        @endif
-
-        @if($contract->fulltext)
-            <section class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-6 sm:p-8">
-                <h2 class="flex items-center gap-2 text-lg font-bold text-slate-900 mb-4">
-                    <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12"/></svg>
-                    Fulltext
-                </h2>
-                <div class="prose prose-slate prose-sm max-w-none whitespace-pre-wrap leading-relaxed">{{ Str::limit($contract->fulltext, 5000) }}</div>
             </section>
         @endif
     </div>

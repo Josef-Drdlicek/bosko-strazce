@@ -2,13 +2,13 @@
 
 @php
 $colors = [
-    'uredni_deska' => 'bg-blue-100 text-blue-800',
-    'zapisy_zm' => 'bg-purple-100 text-purple-800',
-    'zapisy_rm' => 'bg-indigo-100 text-indigo-800',
-    'vyhlasky' => 'bg-red-100 text-red-800',
-    'rozpocty' => 'bg-green-100 text-green-800',
-    'poskytnute_informace' => 'bg-yellow-100 text-yellow-800',
-    'archiv_uredni_desky' => 'bg-gray-100 text-gray-800',
+    'uredni_deska' => 'bg-sky-50 text-sky-700 ring-sky-600/20',
+    'zapisy_zm' => 'bg-violet-50 text-violet-700 ring-violet-600/20',
+    'zapisy_rm' => 'bg-indigo-50 text-indigo-700 ring-indigo-600/20',
+    'vyhlasky' => 'bg-rose-50 text-rose-700 ring-rose-600/20',
+    'rozpocty' => 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+    'poskytnute_informace' => 'bg-amber-50 text-amber-700 ring-amber-600/20',
+    'archiv_uredni_desky' => 'bg-slate-50 text-slate-700 ring-slate-600/20',
 ];
 $labels = [
     'uredni_deska' => 'Úřední deska',
@@ -21,6 +21,6 @@ $labels = [
 ];
 @endphp
 
-<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $colors[$section] ?? 'bg-gray-100 text-gray-800' }}">
+<span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset {{ $colors[$section] ?? 'bg-slate-50 text-slate-700 ring-slate-600/20' }}">
     {{ $labels[$section] ?? $section }}
 </span>

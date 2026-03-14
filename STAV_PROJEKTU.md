@@ -1,6 +1,6 @@
 # Bosko Strážce -- Stav projektu
 
-> Poslední aktualizace: 2026-03-11
+> Poslední aktualizace: 2026-03-14
 
 ## Co je to za projekt
 
@@ -57,16 +57,29 @@ Implementovány kolektory pro:
 
 > Ke spuštění sběru smluv a dotací je potřeba nastavit `HLIDAC_STATU_TOKEN` v `.env`.
 
-### Webové rozhraní (Laravel)
+### Integrace ARES (nové)
 
-Laravel 12 + Blade + Tailwind CSS (nahrazuje FastAPI + Jinja2):
+- **Laravel AresService** — nativní HTTP klient pro ARES REST API
+  - Vyhledávání firem podle názvu (POST `/vyhledat`)
+  - Lookup podle IČO (GET `/{ico}`)
+  - 24h cache výsledků
+  - Automatické obohacení entit při zobrazení detailu
+- **Webová stránka `/ares`** — interaktivní vyhledávání v registru ARES
+- **Detail subjektu** — automaticky zobrazuje data z ARES (sídlo, právní forma, datum vzniku, CZ-NACE)
+
+### Webové rozhraní (Laravel) — nový design
+
+Laravel 12 + Blade + Tailwind CSS 4 + Alpine.js:
 - `/` -- Dashboard (statistiky, poslední dokumenty, smlouvy, top dodavatelé)
 - `/documents` -- Procházení dokumentů (filtry dle sekce, fulltext, paginace)
 - `/documents/{id}` -- Detail dokumentu s přílohami a propojenými subjekty
 - `/contracts` -- Procházení smluv (částka, datum, protistrana, paginace)
 - `/contracts/{id}` -- Detail smlouvy
+- `/subsidies` -- Procházení dotací (filtry dle roku, vyhledávání, paginace)
+- `/subsidies/{id}` -- Detail dotace
 - `/entities` -- Procházení subjektů (filtry dle typu, vyhledávání)
-- `/entities/{id}` -- Detail subjektu se všemi propojeními (smlouvy, dokumenty, dotace)
+- `/entities/{id}` -- Detail subjektu se všemi propojeními + ARES data
+- `/ares` -- Vyhledávání v registru ARES (podle názvu nebo IČO)
 - `/search` -- Globální vyhledávání přes dokumenty, smlouvy, subjekty i dotace
 
 ### REST API
@@ -75,6 +88,40 @@ Laravel 12 + Blade + Tailwind CSS (nahrazuje FastAPI + Jinja2):
 - `/api/entities` -- Seznam subjektů (filtry, paginace)
 - `/api/entities/{id}` -- Detail subjektu
 - `/api/entities/{id}/relations` -- Všechny vztahy subjektu s napojenými záznamy
+
+---
+
+## Architektura (SOLID refactoring)
+
+### Service Layer
+
+Business logika je oddělena od controllerů do servisních tříd:
+
+| Service | Odpovědnost |
+|---------|-------------|
+| `StatsService` | Dashboard statistiky, agregace dat |
+| `DocumentService` | Filtrování, paginace a relace dokumentů |
+| `ContractService` | Filtrování, paginace a relace smluv |
+| `EntityService` | Filtrování, paginace, resolving relací subjektů |
+| `SubsidyService` | Filtrování, paginace a relace dotací |
+| `SearchService` | Globální vyhledávání napříč všemi typy |
+| `AresService` | HTTP klient pro ARES REST API s cachováním |
+
+### Controllery
+
+Tenké controllery delegují na services — žádná business logika v controllerech:
+
+| Controller | Routes |
+|------------|--------|
+| `DashboardController` | `/` |
+| `DocumentController` | `/documents`, `/documents/{id}` |
+| `ContractController` | `/contracts`, `/contracts/{id}` |
+| `SubsidyController` | `/subsidies`, `/subsidies/{id}` |
+| `EntityController` | `/entities`, `/entities/{id}` |
+| `AresController` | `/ares`, `/ares/search` |
+| `SearchController` | `/search` |
+| `StatsApiController` | `/api/stats` |
+| `EntityApiController` | `/api/entities/*` |
 
 ---
 
@@ -96,15 +143,19 @@ bosko-strazce/
 │   ├── collectors/                # Kolektory dat
 │   └── extractors/                # Extraktory textu a entit
 │
-├── laravel/                       # Laravel webová aplikace (nový hlavní stack)
+├── laravel/                       # Laravel webová aplikace (hlavní stack)
 │   ├── app/
 │   │   ├── Models/                # Eloquent modely (6 modelů)
-│   │   ├── Http/Controllers/      # Web controllery (5) + API (2)
+│   │   ├── Services/              # Business logika (7 services)
+│   │   ├── Http/Controllers/      # Web controllery (7) + API (2)
 │   │   └── Console/Commands/      # Artisan příkazy (import, collect)
 │   ├── database/
 │   │   ├── migrations/            # Migrace (6 tabulek)
 │   │   └── database.sqlite        # Laravel SQLite databáze
-│   ├── resources/views/           # Blade šablony + Tailwind CSS
+│   ├── resources/
+│   │   ├── views/                 # Blade šablony + Tailwind CSS
+│   │   ├── css/app.css            # Tailwind 4 konfigurace
+│   │   └── js/app.js              # Alpine.js inicializace
 │   ├── routes/
 │   │   ├── web.php                # Webové routes
 │   │   └── api.php                # API routes
@@ -269,6 +320,8 @@ php artisan serve --port=8000         # http://localhost:8000
   - `/Smlouvy/Hledat?dotaz=ico:00279978` -- smlouvy
   - `/Dotace/Hledat?dotaz=ico:00279978` -- dotace
 - **ARES**: `https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/{ICO}` (bez auth, 500 req/min)
+  - GET `/{ico}` — detail firmy
+  - POST `/vyhledat` — vyhledávání dle názvu
 
 ### Technologický stack
 
@@ -281,11 +334,12 @@ php artisan serve --port=8000         # http://localhost:8000
 - SQLite (data/db/boskovice.db)
 - CLI přes argparse v `main.py`
 
-#### Webová aplikace (Laravel — nový hlavní stack)
+#### Webová aplikace (Laravel — hlavní stack)
 
 - PHP 8.3 + Laravel 12
 - Eloquent ORM (6 modelů: Document, Attachment, Entity, Contract, Subsidy, EntityLink)
-- Blade šablony + Tailwind CSS 4 (Vite build)
+- Service Layer (7 služeb: Stats, Document, Contract, Entity, Subsidy, Search, Ares)
+- Blade šablony + Tailwind CSS 4 + Alpine.js (Vite build)
 - SQLite (laravel/database/database.sqlite)
 - REST API (`/api/stats`, `/api/entities`, `/api/entities/{id}/relations`)
 - Artisan příkazy:
@@ -304,9 +358,14 @@ php artisan serve --port=8000         # http://localhost:8000
 
 #### Laravel (web + API)
 
+- **SOLID principy**:
+  - Single Responsibility: každý service má jednu zodpovědnost
+  - Dependency Injection: controllery přijímají services přes constructor
+  - Tenké controllery: žádná business logika, pouze HTTP concerns
 - Eloquent modely s relacemi v `app/Models/`
-- Controllers v `app/Http/Controllers/` (5 web + 2 API)
-- Blade šablony v `resources/views/` s Tailwind CSS
+- Services v `app/Services/` (7 servisních tříd)
+- Controllers v `app/Http/Controllers/` (7 web + 2 API)
+- Blade šablony v `resources/views/` s Tailwind CSS 4 + Alpine.js
 - Migrační soubory v `database/migrations/`
 - Artisan commands v `app/Console/Commands/`
 

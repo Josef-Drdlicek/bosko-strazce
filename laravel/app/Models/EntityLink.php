@@ -14,13 +14,24 @@ class EntityLink extends Model
         return $this->belongsTo(Entity::class);
     }
 
-    public function linked(): Model|null
+    public function getLinkedModelAttribute(): ?Model
     {
         return match ($this->linked_type) {
             'document' => Document::find($this->linked_id),
             'contract' => Contract::find($this->linked_id),
             'subsidy' => Subsidy::find($this->linked_id),
             default => null,
+        };
+    }
+
+    public function getRoleLabelAttribute(): string
+    {
+        return match ($this->role) {
+            'publisher' => 'Objednatel',
+            'counterparty' => 'Dodavatel',
+            'mentioned' => 'Zmíněn',
+            'recipient' => 'Příjemce',
+            default => $this->role,
         };
     }
 }
