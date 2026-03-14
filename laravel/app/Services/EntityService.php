@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Models\Entity;
 use App\Models\EntityLink;
 use App\Models\Subsidy;
+use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -16,11 +17,11 @@ class EntityService
     {
         $query = Entity::withCount('links');
 
-        if (!empty($filters['q'])) {
+        if (! empty($filters['q'])) {
             $query->search($filters['q']);
         }
 
-        if (!empty($filters['type'])) {
+        if (! empty($filters['type'])) {
             $query->where('entity_type', $filters['type']);
         }
 
@@ -43,29 +44,22 @@ class EntityService
         $grouped = $links->groupBy('linked_type');
 
         $contracts = $this->resolveLinked(Contract::class, $grouped->get('contract'));
+        $documents = $this->resolveLinked(Document::class, $grouped->get('document'));
         $subsidies = $this->resolveLinked(Subsidy::class, $grouped->get('subsidy'));
-
-        $contractRoles = $this->buildRoleMap($grouped->get('contract'));
-        $documentRoles = $this->buildRoleMap($grouped->get('document'));
-        $subsidyRoles = $this->buildRoleMap($grouped->get('subsidy'));
-
         $relatedEntities = $this->resolveLinked(Entity::class, $grouped->get('entity'));
-        $entityRoles = $this->buildRoleMap($grouped->get('entity'));
-
-        $reverseEntityLinks = $this->buildReverseEntityLinks($entity);
 
         return [
             'entity' => $entity,
             'links' => $links,
-            'documents' => $this->resolveLinked(Document::class, $grouped->get('document')),
+            'documents' => $documents,
             'contracts' => $contracts,
             'subsidies' => $subsidies,
             'relatedEntities' => $relatedEntities,
-            'reverseEntityLinks' => $reverseEntityLinks,
-            'contractRoles' => $contractRoles,
-            'documentRoles' => $documentRoles,
-            'subsidyRoles' => $subsidyRoles,
-            'entityRoles' => $entityRoles,
+            'reverseEntityLinks' => $this->buildReverseEntityLinks($entity),
+            'contractRoles' => $this->buildRoleMap($grouped->get('contract')),
+            'documentRoles' => $this->buildRoleMap($grouped->get('document')),
+            'subsidyRoles' => $this->buildRoleMap($grouped->get('subsidy')),
+            'entityRoles' => $this->buildRoleMap($grouped->get('entity')),
             'aggregated' => $this->buildAggregatedStats($contracts, $subsidies),
             'timeline' => $this->buildTimeline($contracts, $subsidies),
         ];
@@ -74,15 +68,25 @@ class EntityService
     public function getRelationsGrouped(Entity $entity): Collection
     {
         return $entity->links->groupBy('linked_type')->map(function (Collection $items, string $type) {
-            $ids = $items->pluck('linked_id');
-            $models = $this->resolveLinkedModels($type, $ids);
+            $models = $this->resolveLinkedModels($type, $items->pluck('linked_id'));
 
-            return $items->map(fn($link) => [
+            return $items->map(fn ($link) => [
                 'role' => $link->role,
                 'type' => $type,
                 'linked' => $models->get($link->linked_id),
             ]);
         });
+    }
+
+    public function getTimeline(Entity $entity): Collection
+    {
+        $links = $entity->links;
+        $grouped = $links->groupBy('linked_type');
+
+        $contracts = $this->resolveLinked(Contract::class, $grouped->get('contract'));
+        $subsidies = $this->resolveLinked(Subsidy::class, $grouped->get('subsidy'));
+
+        return $this->buildTimeline($contracts, $subsidies);
     }
 
     private function resolveLinked(string $modelClass, ?Collection $links): Collection
@@ -96,13 +100,19 @@ class EntityService
 
     private function resolveLinkedModels(string $type, Collection $ids): Collection
     {
-        return match ($type) {
-            'document' => Document::whereIn('id', $ids)->get()->keyBy('id'),
-            'contract' => Contract::whereIn('id', $ids)->get()->keyBy('id'),
-            'subsidy' => Subsidy::whereIn('id', $ids)->get()->keyBy('id'),
-            'entity' => Entity::whereIn('id', $ids)->get()->keyBy('id'),
-            default => collect(),
+        $modelClass = match ($type) {
+            'document' => Document::class,
+            'contract' => Contract::class,
+            'subsidy' => Subsidy::class,
+            'entity' => Entity::class,
+            default => null,
         };
+
+        if ($modelClass === null) {
+            return collect();
+        }
+
+        return $modelClass::whereIn('id', $ids)->get()->keyBy('id');
     }
 
     private function buildReverseEntityLinks(Entity $entity): Collection
@@ -124,7 +134,7 @@ class EntityService
             return collect();
         }
 
-        return $links->mapWithKeys(fn($link) => [$link->linked_id => $link->role]);
+        return $links->mapWithKeys(fn ($link) => [$link->linked_id => $link->role]);
     }
 
     private function buildAggregatedStats(Collection $contracts, Collection $subsidies): array
@@ -134,7 +144,7 @@ class EntityService
         return [
             'contract_count' => $contracts->count(),
             'contract_total' => $contractAmounts->sum(),
-            'contract_avg' => $contractAmounts->count() > 0 ? round($contractAmounts->avg(), 2) : 0,
+            'contract_avg' => $contractAmounts->avg() ? round($contractAmounts->avg(), 2) : 0,
             'contract_min_date' => $contracts->pluck('date_signed')->filter()->min(),
             'contract_max_date' => $contracts->pluck('date_signed')->filter()->max(),
             'subsidy_count' => $subsidies->count(),
@@ -161,7 +171,7 @@ class EntityService
         foreach ($subsidies as $subsidy) {
             if ($subsidy->year) {
                 $items->push((object) [
-                    'date' => \Carbon\Carbon::create($subsidy->year, 1, 1),
+                    'date' => Carbon::create($subsidy->year, 1, 1),
                     'type' => 'subsidy',
                     'label' => $subsidy->title ?: 'Dotace',
                     'amount' => $subsidy->amount,

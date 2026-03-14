@@ -6,7 +6,6 @@ use App\Models\Contract;
 use App\Models\Document;
 use App\Models\Entity;
 use App\Models\Subsidy;
-use Illuminate\Support\Collection;
 
 class SearchService
 {
@@ -28,7 +27,13 @@ class SearchService
 
     public function hasResults(array $results): bool
     {
-        return collect($results)->contains(fn(Collection $items) => $items->isNotEmpty());
+        foreach ($results as $items) {
+            if ($items->isNotEmpty()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function emptyResults(): array

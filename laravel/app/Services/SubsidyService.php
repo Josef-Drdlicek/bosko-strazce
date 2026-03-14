@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Entity;
 use App\Models\Subsidy;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class SubsidyService
 {
@@ -12,11 +13,11 @@ class SubsidyService
     {
         $query = Subsidy::query();
 
-        if (!empty($filters['q'])) {
+        if (! empty($filters['q'])) {
             $query->search($filters['q']);
         }
 
-        if (!empty($filters['year'])) {
+        if (! empty($filters['year'])) {
             $query->where('year', $filters['year']);
         }
 
@@ -26,7 +27,7 @@ class SubsidyService
             ->withQueryString();
     }
 
-    public function getAvailableYears()
+    public function getAvailableYears(): Collection
     {
         return Subsidy::distinct()
             ->whereNotNull('year')

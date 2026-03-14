@@ -1,6 +1,6 @@
 # Bosko Strážce -- Stav projektu
 
-> Poslední aktualizace: 2026-03-14
+> Poslední aktualizace: 2026-03-14 (iterace 2)
 
 ## Co je to za projekt
 
@@ -72,6 +72,9 @@ Automatická detekce anomálií v datech (`SignalService`):
   - Zobrazení jako vizuální karty seskupené dle osoby s avatarem, částkami a prolinky
   - Závažnost: `high` = firma má smlouvy s městem
   - Odkazy na detail zastupitele (`/politicians/{id}`) a firmy (`/entities/{id}`)
+- **Časové sekvence smlouva–dotace** -- detekce subjektů s časově blízkými smlouvami a dotacemi (±1 rok)
+  - Kombinovaná částka, závažnost dle prahů (5M+ high, 1M+ medium)
+  - Prolinky na detail smlouvy i dotace
 - Webová stránka `/signals` s přehledovou tabulkou
 - API endpoint `GET /api/signals`
 - Informační disclaimer o interpretaci signálů
@@ -91,13 +94,14 @@ Samostatná sekce pro zastupitele města (`PoliticianService`):
   - Odkazy na detail entity, graf vztahů
 - Data z Volby.cz (volební výsledky) + ARES VR (statutární orgány) + Registr smluv (smlouvy)
 
-### Grafová vizualizace vztahů (nové)
+### Grafová vizualizace vztahů (rozšířeno)
 
 Interaktivní D3.js force-directed graf zobrazující propojení mezi subjekty:
 - **Stránka `/graph/{id}`** — vizualizace vztahů entity a jejích sousedů
 - **API endpoint `GET /api/graph/{id}`** — JSON data (nodes + edges) pro vizualizéry
 - Uzly: subjekty (velikost dle celkového objemu smluv, barva dle typu entity)
 - Hrany: společné smlouvy/dokumenty/dotace (barva dle typu, tloušťka dle počtu)
+- **Filtrování** — Alpine.js checkboxy pro zobrazení/skrytí hran dle typu vztahu (smlouvy, dokumenty, dotace)
 - Interakce: zoom, pan, drag uzlů, klik = přechod na detail entity
 - Odkaz „Graf vztahů" na detailu každého subjektu
 
@@ -155,7 +159,8 @@ Design:
 | `GET /api/entities` | Seznam subjektů (filtry, paginace) |
 | `GET /api/entities/{id}` | Detail subjektu |
 | `GET /api/entities/{id}/relations` | Všechny vztahy subjektu s napojenými záznamy |
-| `GET /api/signals` | Detekované signály (koncentrace, vysoké smlouvy, dotace, střety zájmů) |
+| `GET /api/entities/{id}/timeline` | Časová osa entity (smlouvy + dotace chronologicky) |
+| `GET /api/signals` | Detekované signály (koncentrace, vysoké smlouvy, dotace, střety, sekvence) |
 | `GET /api/graph/{id}` | Graf vztahů entity (nodes + edges pro vizualizéry) |
 
 ---
@@ -441,10 +446,22 @@ npm run build                         # Jednorázový build CSS/JS do public/bui
 - Service Layer (10 služeb: Stats, Document, Contract, Entity, Subsidy, Search, Ares, Signal, Graph, Politician)
 - Blade šablony + Tailwind CSS 4 + Alpine.js (Vite build)
 - SQLite (laravel/database/database.sqlite)
-- REST API (4 endpointy)
+- REST API (7 endpointů)
 - Artisan příkazy:
   - `php artisan bosko:import` — import z legacy Python databáze
   - `php artisan bosko:collect {command}` — spouštění Python kolektorů
+
+### Refaktoring (iterace 2)
+
+- Modely: `$guarded = []` nahrazeno explicitními `$fillable` poli
+- EntityLink: `getLinkedModelAttribute` odstraněn (N+1 problém), role labels přesunuty do konstanty
+- AresService: `enrichEntity` již nemíchá odpovědnosti (vrací void, ne array)
+- ContractService: validace sort polí proti whitelistu
+- SubsidyService: přidán chybějící return type na `getAvailableYears()`
+- GraphService: magic numbers extrahované do konstant
+- SignalService: extrakce sub-queries do privátních metod, severity thresholds jako konstanty
+- PoliticianService: statutory roles jako konstanta, sjednocení input shapes
+- StatsService: limity jako konstanty, return types na privátních metodách
 
 ### Konvence kódu
 

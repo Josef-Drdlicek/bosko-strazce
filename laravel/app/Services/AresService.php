@@ -14,9 +14,7 @@ class AresService
 
     public function findByIco(string $ico): ?array
     {
-        $cacheKey = "ares:ico:{$ico}";
-
-        return Cache::remember($cacheKey, self::CACHE_TTL_SECONDS, function () use ($ico) {
+        return Cache::remember("ares:ico:{$ico}", self::CACHE_TTL_SECONDS, function () use ($ico) {
             $response = Http::timeout(self::TIMEOUT_SECONDS)
                 ->acceptJson()
                 ->get(self::BASE_URL . "/{$ico}");
@@ -46,29 +44,27 @@ class AresService
         $subjects = $response->json('ekonomickeSubjekty', []);
 
         return array_filter(array_map(
-            fn(array $item) => $this->parseSubject($item),
+            fn (array $item) => $this->parseSubject($item),
             $subjects,
         ));
     }
 
-    public function enrichEntity(Entity $entity): ?array
+    public function enrichEntity(Entity $entity): void
     {
-        if (!$entity->ico) {
-            return null;
+        if (! $entity->ico) {
+            return;
         }
 
         $data = $this->findByIco($entity->ico);
 
         if ($data === null) {
-            return null;
+            return;
         }
 
         $entity->update([
             'name' => $data['name'] ?? $entity->name,
             'metadata_json' => $data,
         ]);
-
-        return $data;
     }
 
     private function parseSubject(array $data): array

@@ -7,7 +7,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Subsidy extends Model
 {
-    protected $guarded = [];
+    protected $fillable = [
+        'external_id',
+        'title',
+        'provider',
+        'recipient_ico',
+        'recipient_name',
+        'program',
+        'amount',
+        'year',
+    ];
 
     protected function casts(): array
     {

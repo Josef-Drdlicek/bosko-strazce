@@ -7,7 +7,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Attachment extends Model
 {
-    protected $guarded = [];
+    protected $fillable = [
+        'document_id',
+        'url',
+        'filename',
+        'local_path',
+        'size_bytes',
+    ];
 
     public function document(): BelongsTo
     {

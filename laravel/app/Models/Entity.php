@@ -7,7 +7,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Entity extends Model
 {
-    protected $guarded = [];
+    protected $fillable = [
+        'name',
+        'entity_type',
+        'ico',
+        'source',
+        'metadata_json',
+    ];
 
     protected function casts(): array
     {
@@ -51,16 +57,16 @@ class Entity extends Model
         return $this->entity_type === 'organization';
     }
 
+    public function hasAresData(): bool
+    {
+        return is_array($this->metadata_json) && ! empty($this->metadata_json);
+    }
+
     public function scopeSearch($query, string $term)
     {
         return $query->where(function ($q) use ($term) {
             $q->where('name', 'like', "%{$term}%")
                 ->orWhere('ico', 'like', "%{$term}%");
         });
-    }
-
-    public function hasAresData(): bool
-    {
-        return is_array($this->metadata_json) && !empty($this->metadata_json);
     }
 }

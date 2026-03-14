@@ -128,12 +128,13 @@ Implementované vztahy (`entity_links` s `linked_type='entity'`):
 - [x] API endpoint `GET /api/signals`
 - [x] Poměr k mediánu, závažnost (high/medium/low), odkaz na detail entity
 
-### Sekvence „rozhodnutí → smlouva → dotace"
+### ~~Sekvence „rozhodnutí → smlouva → dotace"~~ ✅ ČÁSTEČNĚ HOTOVO
 
-- Hledat časové řetězce: dokument města → smlouva s firmou → dotace
-- Evidovat jako „case" s časovou osou a odkazy
-- [ ] Implementovat detekci sekvencí
-- [ ] Přidat „case view" s timeline vizualizací
+- [x] Detekce časových sekvencí smlouva–dotace (±1 rok) v `SignalService::detectTemporalSequences`
+- [x] Zobrazení na stránce `/signals` s prolinky na detail smlouvy i dotace
+- [x] Severity: high (5M+), medium (1M+), low
+- [ ] Přidat „case view" s timeline vizualizací (TODO)
+- [ ] Rozšířit o detekci sekvencí zahrnující dokumenty města (TODO)
 
 ### ~~Možné střety zájmů~~ ✅ HOTOVO
 
@@ -153,7 +154,7 @@ Implementované vztahy (`entity_links` s `linked_type='entity'`):
 - [x] Zobrazení rolí u každé vazby (dodavatel, objednatel, příjemce, zmíněn...)
 - [x] Agregované statistiky (celková/průměrná částka smluv, počet dotací)
 - [x] Timeline: chronologická osa smluv a dotací entity
-- [ ] Filtrování smluv/dokumentů/dotací dle období (TODO)
+- [x] Filtrování smluv/dotací/timeline dle období (Alpine.js date range picker)
 
 ### ~~Zastupitelé (Politici)~~ ✅ HOTOVO
 
@@ -176,12 +177,13 @@ Implementované vztahy (`entity_links` s `linked_type='entity'`):
 - [x] Interaktivní: klik na uzel = detail entity, drag, zoom, pan
 - [x] Velikost uzlů dle objemu smluv, barva dle typu entity, barva hran dle typu vztahu
 - [x] API endpoint `GET /api/graph/{id}` s nodes + edges
-- [ ] Filtrování dle typu vztahu, období, částky (TODO)
+- [x] Filtrování dle typu vztahu (Alpine.js checkboxy: smlouvy/dokumenty/dotace)
+- [ ] Filtrování dle období a částky (TODO)
 
-### Rozšíření API
+### ~~Rozšíření API~~ ✅ HOTOVO
 
 - [x] `GET /api/signals` — seznam detekovaných signálů ✅
-- [ ] `GET /api/entities/{id}/timeline` — časová osa entity (TODO)
+- [x] `GET /api/entities/{id}/timeline` — časová osa entity ✅
 - [x] `GET /api/graph/{id}` — graf vztahů kolem entity (pro vizualizéry) ✅
 
 ---

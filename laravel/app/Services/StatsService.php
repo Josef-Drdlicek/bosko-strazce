@@ -6,9 +6,13 @@ use App\Models\Contract;
 use App\Models\Document;
 use App\Models\Entity;
 use App\Models\Subsidy;
+use Illuminate\Support\Collection;
 
 class StatsService
 {
+    private const RECENT_ITEMS_LIMIT = 10;
+    private const TOP_COUNTERPARTIES_LIMIT = 10;
+
     public function getDashboardData(): array
     {
         return [
@@ -43,22 +47,22 @@ class StatsService
         return $counts;
     }
 
-    private function getRecentDocuments(int $limit = 10)
+    private function getRecentDocuments(): Collection
     {
         return Document::originals()
             ->latest('published_date')
-            ->limit($limit)
+            ->limit(self::RECENT_ITEMS_LIMIT)
             ->get();
     }
 
-    private function getRecentContracts(int $limit = 10)
+    private function getRecentContracts(): Collection
     {
         return Contract::latest('date_signed')
-            ->limit($limit)
+            ->limit(self::RECENT_ITEMS_LIMIT)
             ->get();
     }
 
-    private function getTopCounterparties(int $limit = 10)
+    private function getTopCounterparties(): Collection
     {
         return Contract::selectRaw(
             'counterparty_name, counterparty_ico, COUNT(*) as contract_count, SUM(amount) as total_amount'
@@ -66,7 +70,7 @@ class StatsService
             ->whereNotNull('counterparty_name')
             ->groupBy('counterparty_name', 'counterparty_ico')
             ->orderByDesc('total_amount')
-            ->limit($limit)
+            ->limit(self::TOP_COUNTERPARTIES_LIMIT)
             ->get();
     }
 }

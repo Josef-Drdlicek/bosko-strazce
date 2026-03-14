@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Entity;
 use App\Services\EntityService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class EntityApiController extends Controller
@@ -31,6 +32,15 @@ class EntityApiController extends Controller
         return response()->json([
             'entity' => $entity,
             'relations' => $this->entityService->getRelationsGrouped($entity),
+        ]);
+    }
+
+    public function timeline(Entity $entity): JsonResponse
+    {
+        return response()->json([
+            'entity_id' => $entity->id,
+            'entity_name' => $entity->name,
+            'timeline' => $this->entityService->getTimeline($entity),
         ]);
     }
 }

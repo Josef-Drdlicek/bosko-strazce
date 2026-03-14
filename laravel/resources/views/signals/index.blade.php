@@ -274,6 +274,78 @@
             @endif
         </section>
 
+        @if($temporalSequences->isNotEmpty())
+            <section>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 text-white shadow-lg shadow-cyan-200">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900">Časové sekvence smlouva–dotace</h2>
+                        <p class="text-sm text-slate-500">Subjekty s časově blízkými smlouvami a dotacemi (±1 rok)</p>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 overflow-hidden">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead>
+                            <tr class="bg-slate-50/50">
+                                <th class="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Subjekt</th>
+                                <th class="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Smlouva</th>
+                                <th class="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Dotace</th>
+                                <th class="px-5 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Součet</th>
+                                <th class="px-5 py-3.5 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Závažnost</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @foreach($temporalSequences as $seq)
+                                <tr class="hover:bg-slate-50/80 transition-colors">
+                                    <td class="px-5 py-3.5">
+                                        <a href="{{ route('entities.show', $seq->entity_id) }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
+                                            {{ $seq->entity_name }}
+                                        </a>
+                                        @if($seq->entity_ico)
+                                            <p class="text-xs text-slate-400 font-mono">{{ $seq->entity_ico }}</p>
+                                        @endif
+                                    </td>
+                                    <td class="px-5 py-3.5">
+                                        <a href="{{ route('contracts.show', $seq->contract_id) }}" class="text-sm text-slate-700 hover:text-indigo-600 line-clamp-1">
+                                            {{ \Illuminate\Support\Str::limit($seq->contract_subject ?: 'Bez předmětu', 50) }}
+                                        </a>
+                                        <div class="flex items-center gap-2 mt-0.5">
+                                            <span class="text-xs font-bold text-emerald-700 tabular-nums">{{ number_format($seq->contract_amount, 0, ',', "\u{00a0}") }}&nbsp;CZK</span>
+                                            <span class="text-xs text-slate-400">{{ \Illuminate\Support\Str::limit($seq->contract_date, 10, '') }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-3.5">
+                                        <a href="{{ route('subsidies.show', $seq->subsidy_id) }}" class="text-sm text-slate-700 hover:text-indigo-600 line-clamp-1">
+                                            {{ \Illuminate\Support\Str::limit($seq->subsidy_title ?: 'Bez názvu', 50) }}
+                                        </a>
+                                        <div class="flex items-center gap-2 mt-0.5">
+                                            <span class="text-xs font-bold text-amber-700 tabular-nums">{{ number_format($seq->subsidy_amount, 0, ',', "\u{00a0}") }}&nbsp;CZK</span>
+                                            <span class="text-xs text-slate-400">{{ $seq->subsidy_year }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-3.5 text-right">
+                                        <span class="text-sm font-bold text-slate-900 tabular-nums">{{ number_format($seq->combined_amount, 0, ',', "\u{00a0}") }}&nbsp;CZK</span>
+                                    </td>
+                                    <td class="px-5 py-3.5 text-center">
+                                        @if($seq->severity === 'high')
+                                            <span class="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-600/20">Vysoká</span>
+                                        @elseif($seq->severity === 'medium')
+                                            <span class="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">Střední</span>
+                                        @else
+                                            <span class="inline-flex items-center rounded-full bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10">Nízká</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        @endif
+
         <div class="rounded-2xl bg-amber-50 ring-1 ring-inset ring-amber-200 p-6">
             <div class="flex gap-3">
                 <svg class="h-5 w-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/></svg>

@@ -26,13 +26,11 @@ class EntityController extends Controller
 
     public function show(Entity $entity)
     {
-        if ($entity->ico && !$entity->hasAresData()) {
+        if ($entity->ico && ! $entity->hasAresData()) {
             $this->aresService->enrichEntity($entity);
             $entity->refresh();
         }
 
-        $data = $this->entityService->getWithRelations($entity);
-
-        return view('entities.show', $data);
+        return view('entities.show', $this->entityService->getWithRelations($entity));
     }
 }

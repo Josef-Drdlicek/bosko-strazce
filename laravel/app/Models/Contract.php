@@ -7,7 +7,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Contract extends Model
 {
-    protected $guarded = [];
+    protected $fillable = [
+        'external_id',
+        'subject',
+        'amount',
+        'currency',
+        'date_signed',
+        'publisher_ico',
+        'publisher_name',
+        'counterparty_ico',
+        'counterparty_name',
+        'source_url',
+        'fulltext',
+    ];
 
     protected function casts(): array
     {

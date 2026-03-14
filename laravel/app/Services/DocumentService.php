@@ -13,11 +13,11 @@ class DocumentService
     {
         $query = Document::originals()->with('attachments');
 
-        if (!empty($filters['section'])) {
+        if (! empty($filters['section'])) {
             $query->section($filters['section']);
         }
 
-        if (!empty($filters['q'])) {
+        if (! empty($filters['q'])) {
             $query->search($filters['q']);
         }
 

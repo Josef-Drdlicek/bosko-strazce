@@ -3,12 +3,16 @@
 namespace App\Services;
 
 use App\Models\Entity;
-use App\Models\EntityLink;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class GraphService
 {
+    private const MAX_NEIGHBORS = 30;
+    private const MIN_RADIUS = 8;
+    private const MAX_RADIUS = 40;
+    private const RADIUS_SCALE = 3;
+
     public function buildGraph(Entity $entity, int $depth = 1): array
     {
         $nodes = collect();
@@ -35,17 +39,14 @@ class GraphService
             return;
         }
 
-        $links = $entity->links()->get();
-
-        $linkedByType = $links->groupBy('linked_type');
+        $linkedByType = $entity->links()->get()->groupBy('linked_type');
 
         foreach ($linkedByType as $type => $typeLinks) {
             $linkedIds = $typeLinks->pluck('linked_id')->unique();
-
             $coEntities = $this->findCoEntities($type, $linkedIds, $entity->id);
 
             foreach ($coEntities as $coEntity) {
-                if (!$visited->contains($coEntity->id)) {
+                if (! $visited->contains($coEntity->id)) {
                     $visited->push($coEntity->id);
                     $this->addEntityNode($nodes, $coEntity, false);
                 }
@@ -53,7 +54,7 @@ class GraphService
                 $sharedCount = $coEntity->shared_count ?? 1;
                 $edgeKey = $this->edgeKey($entity->id, $coEntity->id, $type);
 
-                if (!$edges->has($edgeKey)) {
+                if (! $edges->has($edgeKey)) {
                     $edges[$edgeKey] = [
                         'source' => $entity->id,
                         'target' => $coEntity->id,
@@ -66,9 +67,6 @@ class GraphService
         }
     }
 
-    /**
-     * Find entities that share linked records (contracts/documents/subsidies) with the source entity.
-     */
     private function findCoEntities(string $linkedType, Collection $linkedIds, int $excludeEntityId): Collection
     {
         if ($linkedIds->isEmpty()) {
@@ -83,7 +81,7 @@ class GraphService
             ->where('entities.id', '!=', $excludeEntityId)
             ->groupBy('entities.id')
             ->orderByDesc('shared_count')
-            ->limit(30)
+            ->limit(self::MAX_NEIGHBORS)
             ->get();
     }
 
@@ -93,7 +91,7 @@ class GraphService
             return;
         }
 
-        $totalAmount = $this->entityTotalAmount($entity->id);
+        $totalAmount = $this->entityTotalAmount($entity);
 
         $nodes[$entity->id] = [
             'id' => $entity->id,
@@ -107,26 +105,24 @@ class GraphService
         ];
     }
 
-    private function entityTotalAmount(int $entityId): float
+    private function entityTotalAmount(Entity $entity): float
     {
-        return (float) DB::table('entity_links')
+        return (float) $entity->contractLinks()
             ->join('contracts', function ($join) {
-                $join->on('entity_links.linked_id', '=', 'contracts.id')
-                    ->where('entity_links.linked_type', '=', 'contract');
+                $join->on('entity_links.linked_id', '=', 'contracts.id');
             })
-            ->where('entity_links.entity_id', $entityId)
             ->sum('contracts.amount');
     }
 
     private function calculateRadius(float $totalAmount): int
     {
         if ($totalAmount <= 0) {
-            return 8;
+            return self::MIN_RADIUS;
         }
 
         $log = log10(max($totalAmount, 1));
 
-        return (int) min(max($log * 3, 8), 40);
+        return (int) min(max($log * self::RADIUS_SCALE, self::MIN_RADIUS), self::MAX_RADIUS);
     }
 
     private function edgeKey(int $sourceId, int $targetId, string $type): string

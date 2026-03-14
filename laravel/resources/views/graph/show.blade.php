@@ -13,32 +13,81 @@
 
             <div class="flex items-center gap-4 text-xs">
                 <div class="flex items-center gap-1.5">
-                    <span class="inline-block h-3 w-3 rounded-full bg-emerald-500"></span>
-                    <span class="text-slate-600">Smlouvy</span>
+                    <span class="inline-block h-3 w-3 rounded-full bg-violet-500"></span>
+                    <span class="text-slate-600">Organizace</span>
                 </div>
                 <div class="flex items-center gap-1.5">
-                    <span class="inline-block h-3 w-3 rounded-full bg-indigo-500"></span>
-                    <span class="text-slate-600">Dokumenty</span>
+                    <span class="inline-block h-3 w-3 rounded-full bg-blue-500"></span>
+                    <span class="text-slate-600">Osoby</span>
                 </div>
                 <div class="flex items-center gap-1.5">
-                    <span class="inline-block h-3 w-3 rounded-full bg-amber-500"></span>
-                    <span class="text-slate-600">Dotace</span>
+                    <span class="inline-block h-3 w-3 rounded-full bg-indigo-700"></span>
+                    <span class="text-slate-600">Centrální uzel</span>
                 </div>
             </div>
         </div>
 
-        <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 overflow-hidden" style="height: 600px;" id="graph-container">
-            <svg id="graph-svg" class="w-full h-full"></svg>
-        </div>
+        <div x-data="graphFilters()" class="space-y-4">
+            <div class="flex flex-wrap items-center gap-3 rounded-xl bg-white shadow-sm ring-1 ring-slate-200/60 px-5 py-3">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Filtr vztahů:</span>
+                <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" x-model="showContracts" @change="applyFilter()" class="h-3.5 w-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                    <span class="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                    <span class="text-sm text-slate-700">Smlouvy</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" x-model="showDocuments" @change="applyFilter()" class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    <span class="inline-block h-2.5 w-2.5 rounded-full bg-indigo-500"></span>
+                    <span class="text-sm text-slate-700">Dokumenty</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" x-model="showSubsidies" @change="applyFilter()" class="h-3.5 w-3.5 rounded border-slate-300 text-amber-600 focus:ring-amber-500">
+                    <span class="inline-block h-2.5 w-2.5 rounded-full bg-amber-500"></span>
+                    <span class="text-sm text-slate-700">Dotace</span>
+                </label>
+            </div>
 
-        <div class="rounded-xl bg-slate-50 ring-1 ring-inset ring-slate-200 p-4 text-xs text-slate-500">
-            <strong class="text-slate-700">Ovládání:</strong>
-            Tažení myší = posunutí grafu. Kolečko = zoom. Klik na uzel = přechod na detail. Tažení uzlu = přemístění.
+            <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 overflow-hidden" style="height: 600px;" id="graph-container">
+                <svg id="graph-svg" class="w-full h-full"></svg>
+            </div>
+
+            <div class="rounded-xl bg-slate-50 ring-1 ring-inset ring-slate-200 p-4 text-xs text-slate-500">
+                <strong class="text-slate-700">Ovládání:</strong>
+                Tažení myší = posunutí grafu. Kolečko = zoom. Klik na uzel = přechod na detail. Tažení uzlu = přemístění.
+            </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
     <script>
+        function graphFilters() {
+            return {
+                showContracts: true,
+                showDocuments: true,
+                showSubsidies: true,
+                applyFilter() {
+                    if (!window._graphElements) return;
+                    const { link, linkLabel, node } = window._graphElements;
+                    const visibleTypes = new Set();
+                    if (this.showContracts) visibleTypes.add('contract');
+                    if (this.showDocuments) visibleTypes.add('document');
+                    if (this.showSubsidies) visibleTypes.add('subsidy');
+
+                    const visibleNodeIds = new Set();
+                    link.attr('display', d => {
+                        const visible = visibleTypes.has(d.type);
+                        if (visible) {
+                            visibleNodeIds.add(typeof d.source === 'object' ? d.source.id : d.source);
+                            visibleNodeIds.add(typeof d.target === 'object' ? d.target.id : d.target);
+                        }
+                        return visible ? null : 'none';
+                    });
+                    linkLabel.attr('display', d => visibleTypes.has(d.type) ? null : 'none');
+                    node.attr('display', d => (d.central || visibleNodeIds.has(d.id)) ? null : 'none');
+                },
+            };
+        }
+
         (function () {
             const graphData = @json($graphData);
             const container = document.getElementById('graph-container');
@@ -140,6 +189,8 @@
 
             node.append('title')
                 .text(d => d.name + (d.ico ? ' (IČO: ' + d.ico + ')' : '') + (d.totalAmount ? '\n' + formatAmount(d.totalAmount) : ''));
+
+            window._graphElements = { link, linkLabel, node };
 
             simulation.on('tick', () => {
                 link

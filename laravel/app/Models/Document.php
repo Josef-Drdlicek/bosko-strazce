@@ -8,7 +8,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Document extends Model
 {
-    protected $guarded = [];
+    protected $fillable = [
+        'source_url',
+        'title',
+        'section',
+        'published_date',
+        'valid_until',
+        'department',
+        'fulltext',
+        'collected_at',
+        'duplicate_of',
+    ];
 
     protected function casts(): array
     {

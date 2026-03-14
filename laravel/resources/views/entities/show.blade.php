@@ -170,75 +170,104 @@
             </section>
         @endif
 
-        @if($timeline->isNotEmpty())
-            <section class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-6 sm:p-8">
-                <h2 class="flex items-center gap-2 text-lg font-bold text-slate-900 mb-5">
-                    <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg>
-                    Časová osa
-                </h2>
-                <div class="relative">
-                    <div class="absolute left-4 top-0 bottom-0 w-px bg-slate-200"></div>
-                    <div class="space-y-4">
-                        @foreach($timeline->take(20) as $event)
-                            <div class="relative flex gap-4 pl-10">
-                                <div class="absolute left-2.5 top-1.5 h-3 w-3 rounded-full ring-2 ring-white {{ $event->type === 'contract' ? 'bg-emerald-500' : 'bg-amber-500' }}"></div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center gap-3 flex-wrap">
-                                        <span class="text-xs font-medium text-slate-500 tabular-nums">{{ $event->date->format('j. n. Y') }}</span>
-                                        <span class="inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium {{ $event->type === 'contract' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20' : 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20' }}">
-                                            {{ $event->type === 'contract' ? 'Smlouva' : 'Dotace' }}
-                                        </span>
-                                        @if($event->amount)
-                                            <span class="text-xs font-bold text-slate-700 tabular-nums">{{ number_format($event->amount, 0, ',', "\u{00a0}") }}&nbsp;CZK</span>
-                                        @endif
-                                    </div>
-                                    <a href="{{ route($event->type === 'contract' ? 'contracts.show' : 'subsidies.show', $event->id) }}" class="mt-0.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 truncate block">
-                                        {{ \Illuminate\Support\Str::limit($event->label, 100) }}
-                                    </a>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            </section>
-        @endif
+        @if($timeline->isNotEmpty() || $contracts->isNotEmpty() || $subsidies->isNotEmpty())
+            <div x-data="{
+                dateFrom: '',
+                dateTo: '',
+                get hasFilter() { return this.dateFrom !== '' || this.dateTo !== ''; },
+                matchesDate(dateStr) {
+                    if (!dateStr) return true;
+                    if (this.dateFrom && dateStr < this.dateFrom) return false;
+                    if (this.dateTo && dateStr > this.dateTo) return false;
+                    return true;
+                },
+                resetFilter() { this.dateFrom = ''; this.dateTo = ''; },
+            }" class="space-y-6">
 
-        @if($contracts->isNotEmpty())
-            <section class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-6 sm:p-8">
-                <h2 class="flex items-center gap-2 text-lg font-bold text-slate-900 mb-1">
-                    <svg class="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z"/></svg>
-                    Smlouvy
-                    <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">{{ $contracts->count() }}</span>
-                </h2>
-                @if($contracts->sum('amount') > 0)
-                    <p class="text-sm text-slate-500 mb-4">Celkem: <span class="font-bold text-slate-900">{{ number_format($contracts->sum('amount'), 0, ',', "\u{00a0}") }} CZK</span></p>
+                <div class="flex flex-wrap items-end gap-4 rounded-xl bg-white shadow-sm ring-1 ring-slate-200/60 px-5 py-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Období od</label>
+                        <input type="date" x-model="dateFrom" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Období do</label>
+                        <input type="date" x-model="dateTo" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                    </div>
+                    <button x-show="hasFilter" @click="resetFilter()" class="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-200 transition-colors">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                        Zrušit filtr
+                    </button>
+                </div>
+
+                @if($timeline->isNotEmpty())
+                    <section class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-6 sm:p-8">
+                        <h2 class="flex items-center gap-2 text-lg font-bold text-slate-900 mb-5">
+                            <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg>
+                            Časová osa
+                        </h2>
+                        <div class="relative">
+                            <div class="absolute left-4 top-0 bottom-0 w-px bg-slate-200"></div>
+                            <div class="space-y-4">
+                                @foreach($timeline->take(20) as $event)
+                                    <div class="relative flex gap-4 pl-10" x-show="matchesDate('{{ $event->date->format('Y-m-d') }}')">
+                                        <div class="absolute left-2.5 top-1.5 h-3 w-3 rounded-full ring-2 ring-white {{ $event->type === 'contract' ? 'bg-emerald-500' : 'bg-amber-500' }}"></div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-3 flex-wrap">
+                                                <span class="text-xs font-medium text-slate-500 tabular-nums">{{ $event->date->format('j. n. Y') }}</span>
+                                                <span class="inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium {{ $event->type === 'contract' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20' : 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20' }}">
+                                                    {{ $event->type === 'contract' ? 'Smlouva' : 'Dotace' }}
+                                                </span>
+                                                @if($event->amount)
+                                                    <span class="text-xs font-bold text-slate-700 tabular-nums">{{ number_format($event->amount, 0, ',', "\u{00a0}") }}&nbsp;CZK</span>
+                                                @endif
+                                            </div>
+                                            <a href="{{ route($event->type === 'contract' ? 'contracts.show' : 'subsidies.show', $event->id) }}" class="mt-0.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 truncate block">
+                                                {{ \Illuminate\Support\Str::limit($event->label, 100) }}
+                                            </a>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    </section>
                 @endif
-                <div class="divide-y divide-slate-100">
-                    @foreach($contracts as $contract)
-                        <a href="{{ route('contracts.show', $contract) }}" class="block py-3 hover:bg-slate-50/80 transition-colors -mx-2 px-2 rounded-lg">
-                            <div class="flex items-center justify-between gap-4">
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-2">
-                                        <p class="text-sm font-semibold text-slate-900 truncate">{{ $contract->subject ?: 'Bez předmětu' }}</p>
-                                        @if($contractRoles->has($contract->id))
-                                            <span class="shrink-0 inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/10">
-                                                {{ \App\Models\EntityLink::roleLabelFor($contractRoles->get($contract->id)) }}
+
+                @if($contracts->isNotEmpty())
+                    <section class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-6 sm:p-8">
+                        <h2 class="flex items-center gap-2 text-lg font-bold text-slate-900 mb-1">
+                            <svg class="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z"/></svg>
+                            Smlouvy
+                            <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">{{ $contracts->count() }}</span>
+                        </h2>
+                        @if($contracts->sum('amount') > 0)
+                            <p class="text-sm text-slate-500 mb-4">Celkem: <span class="font-bold text-slate-900">{{ number_format($contracts->sum('amount'), 0, ',', "\u{00a0}") }} CZK</span></p>
+                        @endif
+                        <div class="divide-y divide-slate-100">
+                            @foreach($contracts as $contract)
+                                <a href="{{ route('contracts.show', $contract) }}" class="block py-3 hover:bg-slate-50/80 transition-colors -mx-2 px-2 rounded-lg" x-show="matchesDate('{{ $contract->date_signed?->format('Y-m-d') }}')">
+                                    <div class="flex items-center justify-between gap-4">
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-2">
+                                                <p class="text-sm font-semibold text-slate-900 truncate">{{ $contract->subject ?: 'Bez předmětu' }}</p>
+                                                @if($contractRoles->has($contract->id))
+                                                    <span class="shrink-0 inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/10">
+                                                        {{ \App\Models\EntityLink::roleLabelFor($contractRoles->get($contract->id)) }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                            <p class="text-xs text-slate-500 mt-0.5">{{ $contract->date_signed?->format('j. n. Y') }}</p>
+                                        </div>
+                                        @if($contract->amount)
+                                            <span class="shrink-0 inline-flex items-center rounded-lg bg-emerald-50 px-2.5 py-1 text-sm font-bold text-emerald-700">
+                                                {{ number_format($contract->amount, 0, ',', "\u{00a0}") }}&nbsp;CZK
                                             </span>
                                         @endif
                                     </div>
-                                    <p class="text-xs text-slate-500 mt-0.5">{{ $contract->date_signed?->format('j. n. Y') }}</p>
-                                </div>
-                                @if($contract->amount)
-                                    <span class="shrink-0 inline-flex items-center rounded-lg bg-emerald-50 px-2.5 py-1 text-sm font-bold text-emerald-700">
-                                        {{ number_format($contract->amount, 0, ',', "\u{00a0}") }}&nbsp;CZK
-                                    </span>
-                                @endif
-                            </div>
-                        </a>
-                    @endforeach
-                </div>
-            </section>
-        @endif
+                                </a>
+                            @endforeach
+                        </div>
+                    </section>
+                @endif
 
         @if($documents->isNotEmpty())
             <section class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-6 sm:p-8">
@@ -268,39 +297,42 @@
             </section>
         @endif
 
-        @if($subsidies->isNotEmpty())
-            <section class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-6 sm:p-8">
-                <h2 class="flex items-center gap-2 text-lg font-bold text-slate-900 mb-4">
-                    <svg class="h-5 w-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z"/></svg>
-                    Dotace
-                    <span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">{{ $subsidies->count() }}</span>
-                </h2>
-                <div class="divide-y divide-slate-100">
-                    @foreach($subsidies as $subsidy)
-                        <a href="{{ route('subsidies.show', $subsidy) }}" class="block py-3 hover:bg-slate-50/80 transition-colors -mx-2 px-2 rounded-lg">
-                            <div class="flex items-center gap-2">
-                                <p class="text-sm font-semibold text-slate-900">{{ $subsidy->title }}</p>
-                                @if($subsidyRoles->has($subsidy->id))
-                                    <span class="shrink-0 inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/10">
-                                        {{ \App\Models\EntityLink::roleLabelFor($subsidyRoles->get($subsidy->id)) }}
-                                    </span>
-                                @endif
-                            </div>
-                            <div class="mt-1 flex items-center gap-3 text-xs text-slate-500">
-                                @if($subsidy->program)
-                                    <span>{{ $subsidy->program }}</span>
-                                @endif
-                                @if($subsidy->amount)
-                                    <span class="font-bold text-amber-700">{{ number_format($subsidy->amount, 0, ',', "\u{00a0}") }} CZK</span>
-                                @endif
-                                @if($subsidy->year)
-                                    <span>{{ $subsidy->year }}</span>
-                                @endif
-                            </div>
-                        </a>
-                    @endforeach
-                </div>
-            </section>
+                @if($subsidies->isNotEmpty())
+                    <section class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-6 sm:p-8">
+                        <h2 class="flex items-center gap-2 text-lg font-bold text-slate-900 mb-4">
+                            <svg class="h-5 w-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z"/></svg>
+                            Dotace
+                            <span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">{{ $subsidies->count() }}</span>
+                        </h2>
+                        <div class="divide-y divide-slate-100">
+                            @foreach($subsidies as $subsidy)
+                                <a href="{{ route('subsidies.show', $subsidy) }}" class="block py-3 hover:bg-slate-50/80 transition-colors -mx-2 px-2 rounded-lg" x-show="matchesDate('{{ $subsidy->year ? $subsidy->year . '-01-01' : '' }}')">
+                                    <div class="flex items-center gap-2">
+                                        <p class="text-sm font-semibold text-slate-900">{{ $subsidy->title }}</p>
+                                        @if($subsidyRoles->has($subsidy->id))
+                                            <span class="shrink-0 inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/10">
+                                                {{ \App\Models\EntityLink::roleLabelFor($subsidyRoles->get($subsidy->id)) }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <div class="mt-1 flex items-center gap-3 text-xs text-slate-500">
+                                        @if($subsidy->program)
+                                            <span>{{ $subsidy->program }}</span>
+                                        @endif
+                                        @if($subsidy->amount)
+                                            <span class="font-bold text-amber-700">{{ number_format($subsidy->amount, 0, ',', "\u{00a0}") }} CZK</span>
+                                        @endif
+                                        @if($subsidy->year)
+                                            <span>{{ $subsidy->year }}</span>
+                                        @endif
+                                    </div>
+                                </a>
+                            @endforeach
+                        </div>
+                    </section>
+                @endif
+
+            </div>
         @endif
     </div>
 

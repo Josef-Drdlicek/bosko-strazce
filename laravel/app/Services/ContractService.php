@@ -8,16 +8,20 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class ContractService
 {
+    private const ALLOWED_SORT_FIELDS = ['date_signed', 'amount', 'subject'];
+
     public function getFilteredPaginated(array $filters, int $perPage = 25): LengthAwarePaginator
     {
         $query = Contract::query();
 
-        if (!empty($filters['q'])) {
+        if (! empty($filters['q'])) {
             $query->search($filters['q']);
         }
 
-        $sortField = $filters['sort'] ?? 'date_signed';
-        $sortDirection = $filters['dir'] ?? 'desc';
+        $sortField = in_array($filters['sort'] ?? '', self::ALLOWED_SORT_FIELDS, true)
+            ? $filters['sort']
+            : 'date_signed';
+        $sortDirection = ($filters['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
 
         return $query->orderBy($sortField, $sortDirection)
             ->paginate($perPage)
