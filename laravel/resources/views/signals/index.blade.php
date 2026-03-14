@@ -190,64 +190,82 @@
         @endif
 
         <section>
-            <div class="flex items-center gap-3 mb-4">
-                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 text-white shadow-lg shadow-violet-200">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/></svg>
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 text-white shadow-lg shadow-violet-200">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900">Možné střety zájmů</h2>
+                        <p class="text-sm text-slate-500">Zastupitelé s vazbou na firmy, které mají smlouvy s městem</p>
+                    </div>
                 </div>
-                <div>
-                    <h2 class="text-lg font-bold text-slate-900">Možné střety zájmů</h2>
-                    <p class="text-sm text-slate-500">Zastupitelé, kteří jsou zároveň statutáři firem se zakázkami města</p>
-                </div>
+                <a href="{{ route('politicians.index') }}" class="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20 hover:bg-indigo-100 transition-colors">
+                    Všichni zastupitelé
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+                </a>
             </div>
 
             @if($conflictsOfInterest->isNotEmpty())
-                <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 overflow-hidden">
-                    <table class="min-w-full divide-y divide-slate-200">
-                        <thead>
-                            <tr class="bg-slate-50/50">
-                                <th class="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Osoba</th>
-                                <th class="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Firma</th>
-                                <th class="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Pozice ve firmě</th>
-                                <th class="px-5 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Smluv města s firmou</th>
-                                <th class="px-5 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Celkem za smlouvy</th>
-                                <th class="px-5 py-3.5 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Závažnost</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @foreach($conflictsOfInterest as $conflict)
-                                <tr class="hover:bg-slate-50/80 transition-colors">
-                                    <td class="px-5 py-3.5">
-                                        <a href="{{ route('entities.show', $conflict->person_id) }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
-                                            {{ $conflict->person_name }}
-                                        </a>
-                                        <p class="text-xs text-slate-400">Zastupitel</p>
-                                    </td>
-                                    <td class="px-5 py-3.5">
-                                        <a href="{{ route('entities.show', $conflict->company_id) }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
-                                            {{ $conflict->company_name }}
-                                        </a>
-                                        @if($conflict->company_ico)
-                                            <p class="text-xs text-slate-400 font-mono">{{ $conflict->company_ico }}</p>
-                                        @endif
-                                    </td>
-                                    <td class="px-5 py-3.5 text-sm text-slate-600">{{ $conflict->company_role_label }}</td>
-                                    <td class="px-5 py-3.5 text-sm text-slate-600 text-right tabular-nums">{{ $conflict->contract_count }}</td>
-                                    <td class="px-5 py-3.5 text-right">
-                                        <span class="text-sm font-bold text-slate-900 tabular-nums">
-                                            {{ number_format($conflict->total_amount, 0, ',', "\u{00a0}") }}&nbsp;CZK
-                                        </span>
-                                    </td>
-                                    <td class="px-5 py-3.5 text-center">
-                                        @if($conflict->severity === 'high')
-                                            <span class="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-600/20">Vysoká</span>
+                @php
+                    $grouped = $conflictsOfInterest->groupBy('person_id');
+                @endphp
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    @foreach($grouped as $personId => $personConflicts)
+                        @php
+                            $first = $personConflicts->first();
+                            $totalAmount = $personConflicts->sum('total_amount');
+                            $totalContracts = $personConflicts->sum('contract_count');
+                        @endphp
+                        <div class="rounded-2xl bg-white shadow-sm ring-1 ring-rose-200/60 overflow-hidden hover:shadow-md transition-shadow">
+                            <div class="flex items-center gap-4 bg-gradient-to-r from-rose-50 to-violet-50 px-5 py-4 border-b border-rose-100/80">
+                                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-rose-500 text-white font-bold text-sm shadow-sm">
+                                    {{ mb_substr($first->person_name, 0, 1) }}{{ mb_substr(explode(' ', $first->person_name)[1] ?? '', 0, 1) }}
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <a href="{{ route('politicians.show', $first->person_id) }}" class="text-base font-bold text-slate-900 hover:text-indigo-600 transition-colors">
+                                        {{ $first->person_name }}
+                                    </a>
+                                    <p class="text-xs text-slate-500">Zastupitel &middot; {{ $personConflicts->count() }} {{ $personConflicts->count() === 1 ? 'firma' : ($personConflicts->count() < 5 ? 'firmy' : 'firem') }}</p>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <p class="text-sm font-extrabold text-rose-700 tabular-nums">{{ number_format($totalAmount, 0, ',', "\u{00a0}") }}&nbsp;CZK</p>
+                                    <p class="text-xs text-rose-500">{{ $totalContracts }} {{ $totalContracts === 1 ? 'smlouva' : ($totalContracts < 5 ? 'smlouvy' : 'smluv') }}</p>
+                                </div>
+                            </div>
+                            <div class="p-4 space-y-2">
+                                @foreach($personConflicts as $conflict)
+                                    <div class="flex items-center justify-between gap-3 rounded-xl {{ $conflict->contract_count > 0 ? 'bg-rose-50/50' : 'bg-slate-50' }} px-3.5 py-2.5">
+                                        <div class="min-w-0">
+                                            <a href="{{ route('entities.show', $conflict->company_id) }}" class="text-sm font-medium text-slate-800 hover:text-indigo-600 transition-colors truncate block">
+                                                {{ $conflict->company_name }}
+                                            </a>
+                                            <div class="flex items-center gap-2 mt-0.5">
+                                                <span class="text-[11px] text-slate-400">{{ $conflict->company_role_label }}</span>
+                                                @if($conflict->company_ico)
+                                                    <span class="text-[11px] text-slate-300">&middot;</span>
+                                                    <span class="text-[11px] text-slate-400 font-mono">{{ $conflict->company_ico }}</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        @if($conflict->contract_count > 0)
+                                            <span class="shrink-0 inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-700">
+                                                {{ number_format($conflict->total_amount, 0, ',', "\u{00a0}") }}&nbsp;CZK
+                                            </span>
                                         @else
-                                            <span class="inline-flex items-center rounded-full bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10">Kontrola</span>
+                                            <span class="shrink-0 text-[11px] text-emerald-500 font-medium">0 smluv</span>
                                         @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <div class="px-4 pb-3">
+                                <a href="{{ route('politicians.show', $first->person_id) }}" class="flex items-center justify-center gap-1.5 rounded-xl bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 transition-colors">
+                                    Detail zastupitele
+                                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+                                </a>
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
             @else
                 <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 px-5 py-16 text-center">

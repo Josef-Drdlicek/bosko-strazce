@@ -7,6 +7,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\EntityController;
 use App\Http\Controllers\GraphController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\PoliticianController;
 use App\Http\Controllers\SignalController;
 use App\Http\Controllers\SubsidyController;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +27,9 @@ Route::get('/entities', [EntityController::class, 'index'])->name('entities.inde
 Route::get('/entities/{entity}', [EntityController::class, 'show'])->name('entities.show');
 
 Route::get('/signals', SignalController::class)->name('signals.index');
+
+Route::get('/politicians', [PoliticianController::class, 'index'])->name('politicians.index');
+Route::get('/politicians/{politician}', [PoliticianController::class, 'show'])->name('politicians.show');
 
 Route::get('/graph/{entity}', [GraphController::class, 'show'])->name('graph.show');
 
