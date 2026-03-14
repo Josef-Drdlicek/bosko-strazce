@@ -49,17 +49,13 @@ Implementované vztahy (`entity_links`):
 
 ---
 
-## 1. Aktivovat sběr dat (BLOKUJÍCÍ — nutné pro další práci)
+## 1. ~~Aktivovat sběr dat~~ ✅ HOTOVO
 
-> Bez reálných dat z Hlídače státu nelze testovat vztahy, signály ani pokročilé UI.
-
-- [ ] Zaregistrovat se na https://www.hlidacstatu.cz/api
-- [ ] Nastavit `HLIDAC_STATU_TOKEN` v `.env`
-- [ ] Spustit sběr smluv: `python main.py collect-contracts`
-- [ ] Spustit sběr dotací: `python main.py collect-subsidies`
-- [ ] Obohacení: `python main.py extract-entities && python main.py enrich-entities`
-- [ ] Import do Laravelu: `php artisan bosko:import`
-- [ ] Ověřit data v UI — smlouvy, dotace, propojené subjekty, ARES data
+- [x] Zaregistrovat se na https://www.hlidacstatu.cz/api
+- [x] Nastavit `HLIDAC_STATU_TOKEN` v `.env`
+- [x] Data importována: 2 462 smluv, 443 dotací, 535 subjektů, 5 234 vazeb
+- [x] Import do Laravelu: `php artisan bosko:import`
+- [x] Ověřeno v UI i API
 
 ---
 
@@ -125,13 +121,12 @@ Implementace:
 
 > Signály nikdy nejsou „verdikt". Jsou to jen upozornění s vysvětlitelným výpočtem a trasovatelnými zdroji.
 
-### Koncentrace zakázek / dotací
+### ~~Koncentrace zakázek / dotací~~ ✅ HOTOVO
 
-- Pro každou firmu spočítat: počet smluv, součet částek, období (rolling 2–3 roky)
-- Subjekt výrazně nad mediánem = „zajímavý" pro ruční analýzu
-- [ ] Implementovat `SignalService` v Laravelu
-- [ ] Přidat `/signals` stránku s přehledem
-- [ ] API endpoint `/api/signals`
+- [x] Implementován `SignalService` v Laravelu
+- [x] `/signals` stránka s přehledem (koncentrace, nejvyšší smlouvy, dotace)
+- [x] API endpoint `GET /api/signals`
+- [x] Poměr k mediánu, závažnost (high/medium/low), odkaz na detail entity
 
 ### Sekvence „rozhodnutí → smlouva → dotace"
 
@@ -151,12 +146,12 @@ Implementace:
 
 ## 5. UX a pokročilé zobrazení
 
-### Detail entity — vylepšení
+### ~~Detail entity — vylepšení~~ ✅ HOTOVO
 
-- [ ] Filtrování smluv/dokumentů/dotací dle období
-- [ ] Zobrazení rolí u každé vazby (dodavatel, objednatel, příjemce...)
-- [ ] Agregované statistiky (celková částka smluv, počet dotací)
-- [ ] Timeline: chronologická osa všech vazeb entity
+- [x] Zobrazení rolí u každé vazby (dodavatel, objednatel, příjemce, zmíněn...)
+- [x] Agregované statistiky (celková/průměrná částka smluv, počet dotací)
+- [x] Timeline: chronologická osa smluv a dotací entity
+- [ ] Filtrování smluv/dokumentů/dotací dle období (TODO)
 
 ### Case view
 
@@ -164,17 +159,19 @@ Implementace:
 - [ ] Export jako PDF report nebo JSON snapshot
 - [ ] Sdílitelný permalink
 
-### Grafová vizualizace
+### ~~Grafová vizualizace~~ ✅ HOTOVO
 
-- [ ] D3.js nebo Sigma.js graf vztahů
-- [ ] Interaktivní: klik na uzel = detail entity
-- [ ] Filtrování dle typu vztahu, období, částky
+- [x] D3.js force-directed graf vztahů (`/graph/{id}`)
+- [x] Interaktivní: klik na uzel = detail entity, drag, zoom, pan
+- [x] Velikost uzlů dle objemu smluv, barva dle typu entity, barva hran dle typu vztahu
+- [x] API endpoint `GET /api/graph/{id}` s nodes + edges
+- [ ] Filtrování dle typu vztahu, období, částky (TODO)
 
 ### Rozšíření API
 
-- [ ] `GET /api/signals` — seznam detekovaných signálů
-- [ ] `GET /api/entities/{id}/timeline` — časová osa entity
-- [ ] `GET /api/graph/{id}` — graf vztahů kolem entity (pro vizualizéry)
+- [x] `GET /api/signals` — seznam detekovaných signálů ✅
+- [ ] `GET /api/entities/{id}/timeline` — časová osa entity (TODO)
+- [x] `GET /api/graph/{id}` — graf vztahů kolem entity (pro vizualizéry) ✅
 
 ---
 

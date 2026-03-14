@@ -41,12 +41,24 @@ class EntityService
         $links = $entity->links;
         $grouped = $links->groupBy('linked_type');
 
+        $contracts = $this->resolveLinked(Contract::class, $grouped->get('contract'));
+        $subsidies = $this->resolveLinked(Subsidy::class, $grouped->get('subsidy'));
+
+        $contractRoles = $this->buildRoleMap($grouped->get('contract'));
+        $documentRoles = $this->buildRoleMap($grouped->get('document'));
+        $subsidyRoles = $this->buildRoleMap($grouped->get('subsidy'));
+
         return [
             'entity' => $entity,
             'links' => $links,
             'documents' => $this->resolveLinked(Document::class, $grouped->get('document')),
-            'contracts' => $this->resolveLinked(Contract::class, $grouped->get('contract')),
-            'subsidies' => $this->resolveLinked(Subsidy::class, $grouped->get('subsidy')),
+            'contracts' => $contracts,
+            'subsidies' => $subsidies,
+            'contractRoles' => $contractRoles,
+            'documentRoles' => $documentRoles,
+            'subsidyRoles' => $subsidyRoles,
+            'aggregated' => $this->buildAggregatedStats($contracts, $subsidies),
+            'timeline' => $this->buildTimeline($contracts, $subsidies),
         ];
     }
 
@@ -81,5 +93,60 @@ class EntityService
             'subsidy' => Subsidy::whereIn('id', $ids)->get()->keyBy('id'),
             default => collect(),
         };
+    }
+
+    private function buildRoleMap(?Collection $links): Collection
+    {
+        if ($links === null || $links->isEmpty()) {
+            return collect();
+        }
+
+        return $links->mapWithKeys(fn($link) => [$link->linked_id => $link->role]);
+    }
+
+    private function buildAggregatedStats(Collection $contracts, Collection $subsidies): array
+    {
+        $contractAmounts = $contracts->pluck('amount')->filter();
+
+        return [
+            'contract_count' => $contracts->count(),
+            'contract_total' => $contractAmounts->sum(),
+            'contract_avg' => $contractAmounts->count() > 0 ? round($contractAmounts->avg(), 2) : 0,
+            'contract_min_date' => $contracts->pluck('date_signed')->filter()->min(),
+            'contract_max_date' => $contracts->pluck('date_signed')->filter()->max(),
+            'subsidy_count' => $subsidies->count(),
+            'subsidy_total' => $subsidies->pluck('amount')->filter()->sum(),
+        ];
+    }
+
+    private function buildTimeline(Collection $contracts, Collection $subsidies): Collection
+    {
+        $items = collect();
+
+        foreach ($contracts as $contract) {
+            if ($contract->date_signed) {
+                $items->push((object) [
+                    'date' => $contract->date_signed,
+                    'type' => 'contract',
+                    'label' => $contract->subject ?: 'Smlouva',
+                    'amount' => $contract->amount,
+                    'id' => $contract->id,
+                ]);
+            }
+        }
+
+        foreach ($subsidies as $subsidy) {
+            if ($subsidy->year) {
+                $items->push((object) [
+                    'date' => \Carbon\Carbon::create($subsidy->year, 1, 1),
+                    'type' => 'subsidy',
+                    'label' => $subsidy->title ?: 'Dotace',
+                    'amount' => $subsidy->amount,
+                    'id' => $subsidy->id,
+                ]);
+            }
+        }
+
+        return $items->sortByDesc('date')->values();
     }
 }

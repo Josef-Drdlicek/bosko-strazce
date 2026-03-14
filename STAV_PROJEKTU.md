@@ -47,15 +47,35 @@ Databáze obsahuje nové tabulky pro:
 - **subsidies** (dotace z CEDR)
 - **entity_links** (propojení subjektů s dokumenty, smlouvami a dotacemi)
 
-### Sběr externích dat (připraveno)
+### Sběr externích dat (aktivní)
 
 Implementovány kolektory pro:
-- **Hlídač státu API** -- smlouvy z Registru smluv (Boskovice IČO 00279978)
-- **Hlídač státu API** -- dotace z CEDR/IsRed/Eufondy
+- **Hlídač státu API** -- smlouvy z Registru smluv (Boskovice IČO 00279978) -- **2 462 smluv**
+- **Hlídač státu API** -- dotace z CEDR/IsRed/Eufondy -- **443 dotací**
 - **ARES REST API** -- detaily firem dle IČO (adresa, právní forma, datum vzniku)
-- **Entity extractor** -- regex extrakce IČO z fulltextu dokumentů
+- **Entity extractor** -- regex extrakce IČO z fulltextu dokumentů -- **535 subjektů, 5 234 vazeb**
 
-> Ke spuštění sběru smluv a dotací je potřeba nastavit `HLIDAC_STATU_TOKEN` v `.env`.
+`HLIDAC_STATU_TOKEN` je nastaven v `.env`.
+
+### Signály (nové)
+
+Automatická detekce anomálií v datech (`SignalService`):
+- **Koncentrace zakázek** -- dodavatelé s objemem smluv výrazně nad mediánem (poměr k mediánu, závažnost)
+- **Koncentrace dotací** -- příjemci s nejvyššími částkami
+- **Nejvyšší smlouvy** -- top smlouvy dle částky
+- Webová stránka `/signals` s přehledovou tabulkou
+- API endpoint `GET /api/signals`
+- Informační disclaimer o interpretaci signálů
+
+### Grafová vizualizace vztahů (nové)
+
+Interaktivní D3.js force-directed graf zobrazující propojení mezi subjekty:
+- **Stránka `/graph/{id}`** — vizualizace vztahů entity a jejích sousedů
+- **API endpoint `GET /api/graph/{id}`** — JSON data (nodes + edges) pro vizualizéry
+- Uzly: subjekty (velikost dle celkového objemu smluv, barva dle typu entity)
+- Hrany: společné smlouvy/dokumenty/dotace (barva dle typu, tloušťka dle počtu)
+- Interakce: zoom, pan, drag uzlů, klik = přechod na detail entity
+- Odkaz „Graf vztahů" na detailu každého subjektu
 
 ### Integrace ARES (kompletní)
 
@@ -88,7 +108,9 @@ Laravel 12 + Blade + Tailwind CSS 4 + Alpine.js:
 | `/subsidies` | Dotace — filtry dle roku, vyhledávání, paginace |
 | `/subsidies/{id}` | Detail dotace |
 | `/entities` | Subjekty — filtry dle typu, vyhledávání, počet vazeb |
-| `/entities/{id}` | Detail subjektu — smlouvy, dokumenty, dotace + ARES data |
+| `/entities/{id}` | Detail subjektu — agregované statistiky, časová osa, role u vazeb, ARES data |
+| `/signals` | Signály — koncentrace zakázek, nejvyšší smlouvy, příjemci dotací |
+| `/graph/{id}` | Interaktivní graf vztahů subjektu (D3.js force-directed) |
 | `/ares` | ARES vyhledávání — hledání firem podle názvu nebo IČO |
 | `/search` | Globální vyhledávání — dokumenty, smlouvy, subjekty, dotace |
 
@@ -107,6 +129,8 @@ Design:
 | `GET /api/entities` | Seznam subjektů (filtry, paginace) |
 | `GET /api/entities/{id}` | Detail subjektu |
 | `GET /api/entities/{id}/relations` | Všechny vztahy subjektu s napojenými záznamy |
+| `GET /api/signals` | Detekované signály (koncentrace, vysoké smlouvy, dotace) |
+| `GET /api/graph/{id}` | Graf vztahů entity (nodes + edges pro vizualizéry) |
 
 ---
 
@@ -125,6 +149,8 @@ Business logika je oddělena od controllerů do servisních tříd:
 | `SubsidyService` | Filtrování, paginace a relace dotací |
 | `SearchService` | Globální vyhledávání napříč všemi typy |
 | `AresService` | HTTP klient pro ARES REST API s cachováním |
+| `SignalService` | Detekce anomálií: koncentrace zakázek, dotací, vysoké smlouvy |
+| `GraphService` | Sestavení dat grafu vztahů (nodes, edges) pro D3.js vizualizaci |
 
 ### Controllery
 
@@ -139,8 +165,12 @@ Tenké controllery delegují na services — žádná business logika v controll
 | `EntityController` | `/entities`, `/entities/{id}` |
 | `AresController` | `/ares`, `/ares/search` |
 | `SearchController` | `/search` |
+| `SignalController` | `/signals` |
+| `GraphController` | `/graph/{entity}` |
 | `StatsApiController` | `/api/stats` |
 | `EntityApiController` | `/api/entities/*` |
+| `SignalApiController` | `/api/signals` |
+| `GraphApiController` | `/api/graph/{entity}` |
 
 ---
 
@@ -185,7 +215,7 @@ bosko-strazce/
 │   │   ├── css/app.css            # Tailwind 4 + custom theme
 │   │   └── js/app.js              # Alpine.js
 │   ├── routes/
-│   │   ├── web.php                # 11 web routes
+│   │   ├── web.php                # 14 web routes
 │   │   └── api.php                # 4 API routes
 │   └── public/                    # Veřejný adresář (Vite build)
 │
@@ -371,7 +401,7 @@ npm run build                         # Jednorázový build CSS/JS do public/bui
 
 - PHP 8.3 + Laravel 12
 - Eloquent ORM (6 modelů: Document, Attachment, Entity, Contract, Subsidy, EntityLink)
-- Service Layer (7 služeb: Stats, Document, Contract, Entity, Subsidy, Search, Ares)
+- Service Layer (9 služeb: Stats, Document, Contract, Entity, Subsidy, Search, Ares, Signal, Graph)
 - Blade šablony + Tailwind CSS 4 + Alpine.js (Vite build)
 - SQLite (laravel/database/database.sqlite)
 - REST API (4 endpointy)

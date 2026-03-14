@@ -26,12 +26,26 @@ class EntityLink extends Model
 
     public function getRoleLabelAttribute(): string
     {
-        return match ($this->role) {
+        return self::roleLabelFor($this->role);
+    }
+
+    public static function roleLabelFor(string $role): string
+    {
+        return match ($role) {
             'publisher' => 'Objednatel',
             'counterparty' => 'Dodavatel',
-            'mentioned' => 'Zmíněn',
-            'recipient' => 'Příjemce',
-            default => $this->role,
+            'mentioned' => 'Zmíněn v dokumentu',
+            'recipient' => 'Příjemce dotace',
+            'statutory' => 'Statutární zástupce',
+            'shareholder' => 'Společník',
+            'council_member' => 'Zastupitel',
+            'board_member' => 'Radní',
+            'committee_member' => 'Člen komise',
+            'owner' => 'Vlastník',
+            'tenant' => 'Nájemce',
+            'implementor' => 'Realizátor',
+            'funded_by' => 'Financováno z',
+            default => $role,
         };
     }
 }

@@ -5,7 +5,9 @@ use App\Http\Controllers\ContractController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\EntityController;
+use App\Http\Controllers\GraphController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\SignalController;
 use App\Http\Controllers\SubsidyController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,6 +24,10 @@ Route::get('/subsidies/{subsidy}', [SubsidyController::class, 'show'])->name('su
 
 Route::get('/entities', [EntityController::class, 'index'])->name('entities.index');
 Route::get('/entities/{entity}', [EntityController::class, 'show'])->name('entities.show');
+
+Route::get('/signals', SignalController::class)->name('signals.index');
+
+Route::get('/graph/{entity}', [GraphController::class, 'show'])->name('graph.show');
 
 Route::get('/ares', [AresController::class, 'index'])->name('ares.index');
 Route::get('/ares/search', [AresController::class, 'search'])->name('ares.search');
