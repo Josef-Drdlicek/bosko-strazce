@@ -1,47 +1,57 @@
-<x-layouts.app title="Signály">
+<x-layouts.app title="Signály" metaDescription="Automaticky nalezené zajímavosti ve veřejných datech města Boskovice — neobvyklé zakázky, střety zájmů a časové návaznosti.">
 
     <div class="space-y-8">
 
-        <div>
-            <h1 class="text-2xl font-extrabold text-slate-900">Signály</h1>
-            <p class="mt-1 text-sm text-slate-500">Automaticky detekované vzory a nesrovnalosti ve veřejných datech. Signály nejsou obvinění — pouze upozornění k ruční analýze.</p>
-        </div>
+        <x-breadcrumb :items="[['label' => 'Signály']]" />
 
-        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-5">
-                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Smlouvy celkem</p>
+        <x-page-header
+            title="Signály"
+            description="Počítač prošel tisíce dokumentů a smluv a našel věci, které stojí za pozornost — neobvykle velké zakázky, opakované dodavatele nebo zastupitele ve vedení firem. Nejde o obvinění, ale o vodítka pro bližší zkoumání."
+            badge="Automatická analýza"
+        />
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 reveal">
+            <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-5 hover-lift">
+                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Smluv celkem</p>
                 <p class="mt-2 text-2xl font-extrabold text-slate-900">{{ number_format($summary['total_contracts']) }}</p>
+                <p class="mt-1 text-xs text-slate-400">Analyzovaných smluv</p>
             </div>
-            <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-5">
+            <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-5 hover-lift">
                 <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Celková částka</p>
                 <p class="mt-2 text-2xl font-extrabold text-slate-900">{{ number_format($summary['total_amount'], 0, ',', "\u{00a0}") }}&nbsp;CZK</p>
+                <p class="mt-1 text-xs text-slate-400">Objem všech smluv dohromady</p>
             </div>
-            <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-5">
+            <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-5 hover-lift">
                 <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Unikátních dodavatelů</p>
                 <p class="mt-2 text-2xl font-extrabold text-slate-900">{{ number_format($summary['unique_counterparties']) }}</p>
+                <p class="mt-1 text-xs text-slate-400">Firem dodávajících městu</p>
             </div>
-            <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-5">
-                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Medián celk. částky dodavatele</p>
+            <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-5 hover-lift">
+                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Medián částky dodavatele</p>
                 <p class="mt-2 text-2xl font-extrabold text-slate-900">{{ number_format($summary['median_contract_total'], 0, ',', "\u{00a0}") }}&nbsp;CZK</p>
+                <p class="mt-1 text-xs text-slate-400">Typická suma na jednoho dodavatele</p>
             </div>
         </div>
 
-        <section>
-            <div class="flex items-center gap-3 mb-4">
+        <section id="koncentrace" class="reveal">
+            <div class="flex items-center gap-3 mb-2">
                 <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-rose-600 text-white shadow-lg shadow-rose-200">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg>
                 </div>
                 <div>
                     <h2 class="text-lg font-bold text-slate-900">Koncentrace zakázek</h2>
-                    <p class="text-sm text-slate-500">Dodavatelé s nadprůměrným objemem smluv vzhledem k mediánu</p>
+                    <p class="text-sm text-slate-500">Firmy, které od města dostaly výrazně víc peněz, než je běžné</p>
                 </div>
             </div>
+            <x-info-box variant="neutral">
+                Sloupec „Poměr k mediánu" ukazuje, kolikrát víc peněz firma dostala oproti typickému dodavateli. Číslo 10× znamená, že tato firma dostala desetkrát víc, než je obvyklé. To samo o sobě není špatné — možná je v oboru nejlepší — ale stojí za to se podívat proč.
+            </x-info-box>
 
             @if($contractConcentration->isNotEmpty())
-                <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 overflow-hidden">
+                <div class="mt-4 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 overflow-hidden">
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead>
-                            <tr class="bg-slate-50/50">
+                            <tr class="bg-slate-50/80">
                                 <th class="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Subjekt</th>
                                 <th class="px-5 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Smluv</th>
                                 <th class="px-5 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Celková částka</th>
@@ -76,13 +86,7 @@
                                         @endif
                                     </td>
                                     <td class="px-5 py-3.5 text-center">
-                                        @if($signal->severity === 'high')
-                                            <span class="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-600/20">Vysoká</span>
-                                        @elseif($signal->severity === 'medium')
-                                            <span class="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">Střední</span>
-                                        @else
-                                            <span class="inline-flex items-center rounded-full bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10">Nízká</span>
-                                        @endif
+                                        <x-severity-badge :severity="$signal->severity" />
                                     </td>
                                 </tr>
                             @endforeach
@@ -90,28 +94,28 @@
                     </table>
                 </div>
             @else
-                <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 px-5 py-16 text-center">
-                    <p class="text-sm text-slate-400">Žádné signály koncentrace zakázek.</p>
+                <div class="mt-4 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60">
+                    <x-empty-state title="Žádné neobvyklé koncentrace" description="Všichni dodavatelé mají srovnatelné objemy smluv." />
                 </div>
             @endif
         </section>
 
-        <section>
-            <div class="flex items-center gap-3 mb-4">
+        <section class="reveal">
+            <div class="flex items-center gap-3 mb-2">
                 <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-200">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg>
                 </div>
                 <div>
                     <h2 class="text-lg font-bold text-slate-900">Nejvyšší smlouvy</h2>
-                    <p class="text-sm text-slate-500">Smlouvy s nejvyšší hodnotou pro přehled</p>
+                    <p class="text-sm text-slate-500">Nejdražší smlouvy města — u takto velkých částek se vyplatí zkontrolovat, zda proběhla soutěž</p>
                 </div>
             </div>
 
             @if($highValueContracts->isNotEmpty())
-                <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 overflow-hidden">
+                <div class="mt-4 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 overflow-hidden">
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead>
-                            <tr class="bg-slate-50/50">
+                            <tr class="bg-slate-50/80">
                                 <th class="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Předmět</th>
                                 <th class="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Dodavatel</th>
                                 <th class="px-5 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Částka</th>
@@ -140,21 +144,21 @@
         </section>
 
         @if($subsidyConcentration->isNotEmpty())
-            <section>
-                <div class="flex items-center gap-3 mb-4">
+            <section class="reveal">
+                <div class="flex items-center gap-3 mb-2">
                     <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-200">
-                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z"/></svg>
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75"/></svg>
                     </div>
                     <div>
                         <h2 class="text-lg font-bold text-slate-900">Příjemci dotací</h2>
-                        <p class="text-sm text-slate-500">Subjekty přijímající dotace z veřejných zdrojů</p>
+                        <p class="text-sm text-slate-500">Subjekty přijímající dotace z veřejných zdrojů — kolik peněz a za jaké období</p>
                     </div>
                 </div>
 
-                <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 overflow-hidden">
+                <div class="mt-4 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 overflow-hidden">
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead>
-                            <tr class="bg-slate-50/50">
+                            <tr class="bg-slate-50/80">
                                 <th class="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Příjemce</th>
                                 <th class="px-5 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Dotací</th>
                                 <th class="px-5 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Celková částka</th>
@@ -189,15 +193,15 @@
             </section>
         @endif
 
-        <section>
-            <div class="flex items-center justify-between mb-4">
+        <section class="reveal">
+            <div class="flex items-center justify-between mb-2">
                 <div class="flex items-center gap-3">
                     <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 text-white shadow-lg shadow-violet-200">
                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/></svg>
                     </div>
                     <div>
                         <h2 class="text-lg font-bold text-slate-900">Možné střety zájmů</h2>
-                        <p class="text-sm text-slate-500">Zastupitelé s vazbou na firmy, které mají smlouvy s městem</p>
+                        <p class="text-sm text-slate-500">Zastupitelé, kteří jsou zároveň ve vedení firem dodávajících městu</p>
                     </div>
                 </div>
                 <a href="{{ route('politicians.index') }}" class="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20 hover:bg-indigo-100 transition-colors">
@@ -206,11 +210,15 @@
                 </a>
             </div>
 
+            <x-info-box variant="neutral">
+                Zastupitel je zároveň ve vedení firmy, která má zakázky od města. To může být zcela v pořádku — důležité je, zda se zastupitel z hlasování o zakázkách své firmy vyloučil. Tyto informace z veřejných dat nezjistíme, ale upozornění na situaci může být užitečné.
+            </x-info-box>
+
             @if($conflictsOfInterest->isNotEmpty())
                 @php
                     $grouped = $conflictsOfInterest->groupBy('person_id');
                 @endphp
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                     @foreach($grouped as $personId => $personConflicts)
                         @php
                             $first = $personConflicts->first();
@@ -268,28 +276,32 @@
                     @endforeach
                 </div>
             @else
-                <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 px-5 py-16 text-center">
-                    <p class="text-sm text-slate-400">Nebyly detekovány žádné možné střety zájmů.</p>
+                <div class="mt-4 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60">
+                    <x-empty-state title="Žádné střety zájmů nebyly detekovány" description="Žádný zastupitel nebyl nalezen ve vedení firem se smlouvami s městem." />
                 </div>
             @endif
         </section>
 
         @if($temporalSequences->isNotEmpty())
-            <section>
-                <div class="flex items-center gap-3 mb-4">
+            <section id="sekvence" class="reveal">
+                <div class="flex items-center gap-3 mb-2">
                     <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 text-white shadow-lg shadow-cyan-200">
                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
                     </div>
                     <div>
                         <h2 class="text-lg font-bold text-slate-900">Časové sekvence smlouva–dotace</h2>
-                        <p class="text-sm text-slate-500">Subjekty s časově blízkými smlouvami a dotacemi (±1 rok)</p>
+                        <p class="text-sm text-slate-500">Firma získala smlouvu a krátce nato i dotaci (nebo naopak) — může to být náhoda, ale i záměr</p>
                     </div>
                 </div>
 
-                <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 overflow-hidden">
+                <x-info-box variant="neutral">
+                    Zobrazujeme subjekty, které mají smlouvu a dotaci v rozmezí jednoho roku. Časová blízkost sama o sobě nic nedokazuje, ale u velkých částek stojí za pozornost.
+                </x-info-box>
+
+                <div class="mt-4 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 overflow-hidden">
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead>
-                            <tr class="bg-slate-50/50">
+                            <tr class="bg-slate-50/80">
                                 <th class="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Subjekt</th>
                                 <th class="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Smlouva</th>
                                 <th class="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Dotace</th>
@@ -330,13 +342,7 @@
                                         <span class="text-sm font-bold text-slate-900 tabular-nums">{{ number_format($seq->combined_amount, 0, ',', "\u{00a0}") }}&nbsp;CZK</span>
                                     </td>
                                     <td class="px-5 py-3.5 text-center">
-                                        @if($seq->severity === 'high')
-                                            <span class="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-600/20">Vysoká</span>
-                                        @elseif($seq->severity === 'medium')
-                                            <span class="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">Střední</span>
-                                        @else
-                                            <span class="inline-flex items-center rounded-full bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10">Nízká</span>
-                                        @endif
+                                        <x-severity-badge :severity="$seq->severity" />
                                     </td>
                                 </tr>
                             @endforeach
@@ -346,19 +352,11 @@
             </section>
         @endif
 
-        <div class="rounded-2xl bg-amber-50 ring-1 ring-inset ring-amber-200 p-6">
-            <div class="flex gap-3">
-                <svg class="h-5 w-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/></svg>
-                <div>
-                    <h3 class="text-sm font-bold text-amber-800">Upozornění k interpretaci</h3>
-                    <p class="mt-1 text-sm text-amber-700">
-                        Signály jsou automaticky generované heuristiky. Vysoký objem smluv může mít zcela legitimní důvody
-                        (např. dlouhodobý rámcový dodavatel, specializovaná služba). Každý signál je třeba ověřit
-                        proti zdrojovým dokumentům a zvážit kontext.
-                    </p>
-                </div>
-            </div>
-        </div>
+        <x-info-box variant="warning" title="Upozornění k interpretaci">
+            Signály jsou automaticky generované heuristiky. Vysoký objem smluv může mít zcela legitimní důvody
+            (např. dlouhodobý rámcový dodavatel, specializovaná služba). Každý signál je třeba ověřit
+            proti zdrojovým dokumentům a zvážit kontext. Platforma neobviňuje — pouze zobrazuje veřejně dostupné informace.
+        </x-info-box>
 
     </div>
 

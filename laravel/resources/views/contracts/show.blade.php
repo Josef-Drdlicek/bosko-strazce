@@ -1,10 +1,8 @@
 <x-layouts.app :title="$contract->subject ?: 'Detail smlouvy'">
 
     <div class="space-y-6">
-        <a href="{{ route('contracts.index') }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
-            Zpět na smlouvy
-        </a>
+
+        <x-breadcrumb :items="[['label' => 'Smlouvy', 'href' => route('contracts.index')], ['label' => Str::limit($contract->subject ?: 'Detail smlouvy', 50)]]" />
 
         <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-6 sm:p-8">
             <h1 class="text-2xl font-extrabold text-slate-900 sm:text-3xl">{{ $contract->subject ?: 'Bez předmětu' }}</h1>
@@ -85,6 +83,10 @@
                 <div class="prose prose-slate prose-sm max-w-none whitespace-pre-wrap leading-relaxed">{{ Str::limit($contract->fulltext, 5000) }}</div>
             </section>
         @endif
+
+        <x-info-box variant="neutral">
+            Smlouva pochází z celostátního <strong>Registru smluv</strong> (přes Hlídač státu). Částka a další údaje jsou přebírány automaticky — pro ověření klikněte na odkaz „Zobrazit na Hlídači státu" výše.
+        </x-info-box>
     </div>
 
 </x-layouts.app>

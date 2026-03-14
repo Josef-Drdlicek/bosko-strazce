@@ -1,10 +1,8 @@
 <x-layouts.app :title="$subsidy->title">
 
     <div class="space-y-6">
-        <a href="{{ route('subsidies.index') }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
-            Zpět na dotace
-        </a>
+
+        <x-breadcrumb :items="[['label' => 'Dotace', 'href' => route('subsidies.index')], ['label' => Str::limit($subsidy->title, 50)]]" />
 
         <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-6 sm:p-8">
             <h1 class="text-2xl font-extrabold text-slate-900 sm:text-3xl">{{ $subsidy->title }}</h1>

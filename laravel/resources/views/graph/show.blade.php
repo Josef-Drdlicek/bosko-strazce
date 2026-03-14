@@ -1,28 +1,27 @@
 <x-layouts.app :title="'Graf vztahů — ' . $entity->name">
 
     <div class="space-y-6">
+
+        <x-breadcrumb :items="[['label' => 'Subjekty', 'href' => route('entities.index')], ['label' => $entity->name, 'href' => route('entities.show', $entity)], ['label' => 'Graf vztahů']]" />
+
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <a href="{{ route('entities.show', $entity) }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors mb-2">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
-                    Zpět na {{ $entity->name }}
-                </a>
                 <h1 class="text-2xl font-extrabold text-slate-900">Graf vztahů</h1>
-                <p class="mt-1 text-sm text-slate-500">Interaktivní vizualizace propojení subjektu <span class="font-semibold text-slate-700">{{ $entity->name }}</span> s dalšími entitami</p>
+                <p class="mt-1 text-sm text-slate-500 leading-relaxed">Vizuální mapa propojení — kdo s kým obchoduje, kdo kde sedí ve vedení, kdo pobírá dotace. Klikněte na libovolný bod pro detail.</p>
             </div>
 
             <div class="flex items-center gap-4 text-xs">
                 <div class="flex items-center gap-1.5">
                     <span class="inline-block h-3 w-3 rounded-full bg-violet-500"></span>
-                    <span class="text-slate-600">Organizace</span>
+                    <span class="text-slate-600">Firma</span>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <span class="inline-block h-3 w-3 rounded-full bg-blue-500"></span>
-                    <span class="text-slate-600">Osoby</span>
+                    <span class="text-slate-600">Osoba</span>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <span class="inline-block h-3 w-3 rounded-full bg-indigo-700"></span>
-                    <span class="text-slate-600">Centrální uzel</span>
+                    <span class="text-slate-600">{{ $entity->name }}</span>
                 </div>
             </div>
         </div>
@@ -51,9 +50,15 @@
                 <svg id="graph-svg" class="w-full h-full"></svg>
             </div>
 
-            <div class="rounded-xl bg-slate-50 ring-1 ring-inset ring-slate-200 p-4 text-xs text-slate-500">
-                <strong class="text-slate-700">Ovládání:</strong>
-                Tažení myší = posunutí grafu. Kolečko = zoom. Klik na uzel = přechod na detail. Tažení uzlu = přemístění.
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div class="rounded-xl bg-slate-50 ring-1 ring-inset ring-slate-200 p-4 text-xs text-slate-500">
+                    <strong class="text-slate-700">Ovládání:</strong>
+                    Tažení myší = posunutí grafu. Kolečko = zoom. Klik na uzel = přechod na detail. Tažení uzlu = přemístění.
+                </div>
+                <div class="rounded-xl bg-slate-50 ring-1 ring-inset ring-slate-200 p-4 text-xs text-slate-500">
+                    <strong class="text-slate-700">Jak číst graf:</strong>
+                    Větší bod = větší objem smluv. Zelená čára = společná smlouva. Modrá = společný dokument. Žlutá = společná dotace.
+                </div>
             </div>
         </div>
     </div>

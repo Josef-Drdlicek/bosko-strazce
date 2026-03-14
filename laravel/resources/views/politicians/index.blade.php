@@ -1,47 +1,89 @@
-<x-layouts.app title="Zastupitelé">
+<x-layouts.app title="Zastupitelé" metaDescription="Zastupitelé města Boskovice — komunální volby 2014, 2018, 2022 a jejich vazby na firmy obchodující s městem.">
 
     <div class="space-y-8">
 
-        <div>
-            <h1 class="text-2xl font-extrabold text-slate-900">Zastupitelé města Boskovice</h1>
-            <p class="mt-1 text-sm text-slate-500">Přehled všech zvolených zastupitelů a jejich vazeb na firmy se zakázkami města.</p>
+        <x-breadcrumb :items="[['label' => 'Zastupitelé']]" />
+
+        <x-page-header
+            title="Zastupitelé města Boskovice"
+            description="Kdo rozhoduje o městě? Zastupitelé zvolení v komunálních volbách a jejich případné vazby na firmy, které s městem obchodují. Vazba na firmu neznamená problém — ale veřejnost by o ní měla vědět."
+            badge="Zdroj: Volby.cz &middot; ARES &middot; Registr smluv"
+        />
+
+        <div class="reveal grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div class="hover-lift rounded-xl bg-white p-4 ring-1 ring-slate-200/60 flex items-start gap-3">
+                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"/></svg>
+                </div>
+                <div>
+                    <p class="text-xs font-bold text-slate-900">Kteří zastupitelé jsou ve vedení firem</p>
+                    <p class="text-xs text-slate-500">Statutární orgány firem z obchodního rejstříku (ARES).</p>
+                </div>
+            </div>
+            <div class="hover-lift rounded-xl bg-white p-4 ring-1 ring-slate-200/60 flex items-start gap-3">
+                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/></svg>
+                </div>
+                <div>
+                    <p class="text-xs font-bold text-slate-900">Které firmy zastupitelů mají zakázky</p>
+                    <p class="text-xs text-slate-500">Křížová kontrola se smlouvami z Registru smluv.</p>
+                </div>
+            </div>
+            <div class="hover-lift rounded-xl bg-white p-4 ring-1 ring-slate-200/60 flex items-start gap-3">
+                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+                </div>
+                <div>
+                    <p class="text-xs font-bold text-slate-900">Kolik peněz proudí přes vazby</p>
+                    <p class="text-xs text-slate-500">Celkový objem smluv firem propojených se zastupiteli.</p>
+                </div>
+            </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
+        <div class="reveal grid grid-cols-1 gap-5 sm:grid-cols-3">
             <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-5">
                 <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Zastupitelů celkem</p>
                 <p class="mt-2 text-2xl font-extrabold text-slate-900">{{ $totalPoliticians }}</p>
+                <p class="mt-1 text-xs text-slate-400">Volby 2014, 2018, 2022</p>
             </div>
             <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-5">
                 <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">S vazbou na firmu</p>
                 <p class="mt-2 text-2xl font-extrabold text-violet-600">{{ $withConflicts }}</p>
+                <p class="mt-1 text-xs text-slate-400">Zastupitelé ve vedení firem</p>
             </div>
             <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-5">
                 <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Politických stran</p>
                 <p class="mt-2 text-2xl font-extrabold text-slate-900">{{ $uniqueParties->count() }}</p>
+                <p class="mt-1 text-xs text-slate-400">Zastoupených ve volbách</p>
             </div>
         </div>
 
         <div x-data="{ filter: 'all' }" class="space-y-5">
-            <div class="flex flex-wrap gap-2">
-                <button @click="filter = 'all'" :class="filter === 'all' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'" class="rounded-full px-4 py-1.5 text-sm font-medium transition-all">
-                    Všichni
-                </button>
-                <button @click="filter = 'conflict'" :class="filter === 'conflict' ? 'bg-rose-600 text-white shadow-sm' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'" class="rounded-full px-4 py-1.5 text-sm font-medium transition-all">
-                    S vazbou na firmu
-                </button>
-                <button @click="filter = 'clean'" :class="filter === 'clean' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'" class="rounded-full px-4 py-1.5 text-sm font-medium transition-all">
-                    Bez vazby
-                </button>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex flex-wrap gap-2">
+                    <button @click="filter = 'all'" :class="filter === 'all' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'" class="rounded-full px-4 py-1.5 text-sm font-medium transition-all">
+                        Všichni
+                    </button>
+                    <button @click="filter = 'conflict'" :class="filter === 'conflict' ? 'bg-rose-600 text-white shadow-sm' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'" class="rounded-full px-4 py-1.5 text-sm font-medium transition-all">
+                        S vazbou na firmu
+                    </button>
+                    <button @click="filter = 'clean'" :class="filter === 'clean' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'" class="rounded-full px-4 py-1.5 text-sm font-medium transition-all">
+                        Bez vazby
+                    </button>
+                </div>
+                <a href="{{ route('signals.index') }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-rose-600 hover:text-rose-800 transition-colors">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg>
+                    Signály střetů zájmů
+                </a>
             </div>
 
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div class="reveal grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 @foreach($politicians as $politician)
                     <a
                         href="{{ route('politicians.show', $politician->id) }}"
                         x-show="filter === 'all' || (filter === 'conflict' && {{ $politician->has_conflicts ? 'true' : 'false' }}) || (filter === 'clean' && !{{ $politician->has_conflicts ? 'true' : 'false' }})"
                         x-transition
-                        class="group block rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 hover:shadow-md hover:ring-slate-300/60 transition-all overflow-hidden"
+                        class="group hover-lift block rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 hover:shadow-md hover:ring-slate-300/60 transition-all overflow-hidden"
                     >
                         <div class="p-5">
                             <div class="flex items-start justify-between gap-3">
@@ -115,20 +157,12 @@
             </div>
         </div>
 
-        <div class="rounded-2xl bg-amber-50 ring-1 ring-inset ring-amber-200 p-6">
-            <div class="flex gap-3">
-                <svg class="h-5 w-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/></svg>
-                <div>
-                    <h3 class="text-sm font-bold text-amber-800">O těchto datech</h3>
-                    <p class="mt-1 text-sm text-amber-700">
-                        Zastupitelé jsou importováni z <strong>volby.cz</strong> (výsledky komunálních voleb 2014, 2018, 2022).
-                        Vazby na firmy pochází z <strong>ARES</strong> veřejného rejstříku (statutární orgány).
-                        Smlouvy jsou z <strong>Registru smluv</strong> přes Hlídač státu.
-                        Vazba na firmu neznamená střet zájmů — slouží pouze jako podnět k ověření.
-                    </p>
-                </div>
-            </div>
-        </div>
+        <x-info-box variant="warning" title="O těchto datech">
+            Zastupitelé jsou importováni z <strong>volby.cz</strong> (výsledky komunálních voleb 2014, 2018, 2022).
+            Vazby na firmy pochází z <strong>ARES</strong> veřejného rejstříku (statutární orgány).
+            Smlouvy jsou z <strong>Registru smluv</strong> přes Hlídač státu.
+            Vazba na firmu neznamená střet zájmů — slouží pouze jako podnět k ověření z veřejně dostupných dat.
+        </x-info-box>
 
     </div>
 

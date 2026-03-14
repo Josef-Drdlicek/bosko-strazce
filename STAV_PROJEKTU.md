@@ -1,6 +1,6 @@
 # Bosko Strážce -- Stav projektu
 
-> Poslední aktualizace: 2026-03-14 (iterace 2)
+> Poslední aktualizace: 2026-03-14 (iterace 4)
 
 ## Co je to za projekt
 
@@ -143,13 +143,33 @@ Laravel 12 + Blade + Tailwind CSS 4 + Alpine.js:
 | `/graph/{id}` | Interaktivní graf vztahů subjektu (D3.js force-directed) |
 | `/ares` | ARES vyhledávání — hledání firem podle názvu nebo IČO |
 | `/search` | Globální vyhledávání — dokumenty, smlouvy, subjekty, dotace |
+| `/mapa` | Mapa bezpečnosti — občané zaznamenávají nebezpečná místa (Leaflet.js) |
 
-Design:
-- Indigo/slate profesionální paleta
-- Gradient hero banner na dashboardu
-- Heroicons SVG ikony v navigaci a sekcích
+Design (iterace 4 — moderní vizuál inspirovaný Laravel.com):
+- **Dark hero sections** — slate-950 pozadí, gradient glows, dot-grid patterny
+- **Glassmorphism navigace** — backdrop-blur, semi-transparentní pozadí s dynamickým shadow na scroll
+- **Gradient text** — `.text-gradient` (indigo→violet→purple) pro nadpisy
+- **Animated counters** — čísla se animují při scrollu do viewportu (Alpine.js `counter()`)
+- **Scroll reveal animace** — `.reveal` class s IntersectionObserver, fade-up efekt
+- **Hover-lift karty** — translateY(-4px) + shadow při hoveru
+- **Card shine efekt** — pohybový light-streak gradient na hover
+- **Glow shadows** — barevné shadow-lg shadow-indigo-500/25 na gradient ikonách
+- **Modern spacing** — rounded-3xl kontejnery, větší padding, 16px mezerování sekcí
+- **Dark footer** — slate-950 s dot-grid overlay, 4-sloupcový layout
+- Inter font 400–900, Heroicons SVG
 - Responzivní mobilní menu (Alpine.js)
-- Inter font, zaoblené karty se stíny, barevné badge pro částky a sekce
+- Srozumitelné popisy, breadcrumbs, cross-linking CTA, info boxy
+- **Nové Blade komponenty**: `info-box`, `feature-card`, `empty-state`, `page-header`, `breadcrumb`, `severity-badge`
+- **CSS utility classes**: `text-gradient`, `glass`, `glass-dark`, `glow-indigo`, `hover-lift`, `card-shine`, `dot-grid`, `animate-fade-up`, `reveal`
+
+**Mapa bezpečnosti (nová funkce):**
+- Leaflet.js interaktivní mapa města Boskovice (OpenStreetMap tiles)
+- 5 kategorií hlášení: osvětlení, chodníky, doprava, vandalismus, ostatní
+- Formulář pro občany: klik na mapu → výběr kategorie → popis → odeslání
+- GeoJSON API endpoint `/api/safety-reports`
+- Barevně odlišené markery podle kategorie
+- Statistiky kategorií nad mapou
+- Model `SafetyReport`, service `SafetyReportService`, controller `SafetyMapController`
 
 ### REST API
 
@@ -183,6 +203,7 @@ Business logika je oddělena od controllerů do servisních tříd:
 | `SignalService` | Detekce anomálií: koncentrace zakázek, dotací, vysoké smlouvy, střety zájmů |
 | `GraphService` | Sestavení dat grafu vztahů (nodes, edges) pro D3.js vizualizaci |
 | `PoliticianService` | Přehled zastupitelů, vazby na firmy, volební historie, detailní profily |
+| `SafetyReportService` | Mapa bezpečnosti — GeoJSON export, kategorizace, CRUD hlášení |
 
 ### Controllery
 
@@ -480,8 +501,12 @@ npm run build                         # Jednorázový build CSS/JS do public/bui
   - Dependency Injection: controllery přijímají services přes constructor
   - Tenké controllery: žádná business logika, pouze HTTP concerns
 - Eloquent modely s relacemi v `app/Models/`
-- Services v `app/Services/` (10 servisních tříd)
-- Controllers v `app/Http/Controllers/` (10 web + 4 API)
+- Services v `app/Services/` (11 servisních tříd)
+- Controllers v `app/Http/Controllers/` (11 web + 4 API)
 - Blade šablony v `resources/views/` s Tailwind CSS 4 + Alpine.js
+- Blade komponenty v `resources/views/components/` (10 komponent: layouts/app, nav-link, stat-card, section-badge, info-box, feature-card, empty-state, page-header, breadcrumb, severity-badge)
+- Custom CSS utility classes v `resources/css/app.css` (text-gradient, glass, hover-lift, card-shine, dot-grid, reveal, animate-fade-up)
+- Alpine.js `counter()` data component pro animated counters
+- IntersectionObserver scroll-reveal v `resources/js/app.js`
 - Migrační soubory v `database/migrations/`
 - Artisan commands v `app/Console/Commands/`

@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\EntityController;
 use App\Http\Controllers\GraphController;
+use App\Http\Controllers\SafetyMapController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\PoliticianController;
 use App\Http\Controllers\SignalController;
@@ -37,3 +38,7 @@ Route::get('/ares', [AresController::class, 'index'])->name('ares.index');
 Route::get('/ares/search', [AresController::class, 'search'])->name('ares.search');
 
 Route::get('/search', SearchController::class)->name('search');
+
+Route::get('/mapa', [SafetyMapController::class, 'index'])->name('safety-map.index');
+Route::post('/mapa', [SafetyMapController::class, 'store'])->name('safety-map.store');
+Route::get('/api/safety-reports', [SafetyMapController::class, 'geojson'])->name('safety-map.geojson');
