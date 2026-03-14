@@ -67,13 +67,29 @@ Automatická detekce anomálií v datech (`SignalService`):
 - **Koncentrace zakázek** -- dodavatelé s objemem smluv výrazně nad mediánem (poměr k mediánu, závažnost)
 - **Koncentrace dotací** -- příjemci s nejvyššími částkami
 - **Nejvyšší smlouvy** -- top smlouvy dle částky
-- **Možné střety zájmů** (nové) -- zastupitelé × statutáři firem se zakázkami města (16 detekovaných)
+- **Možné střety zájmů** -- zastupitelé × statutáři firem se zakázkami města (16 detekovaných)
   - Cross-referencing na základě case-insensitive name matching
-  - Zobrazení s odkazem na osobu, firmu, počet smluv a celkovou částku
+  - Zobrazení jako vizuální karty seskupené dle osoby s avatarem, částkami a prolinky
   - Závažnost: `high` = firma má smlouvy s městem
+  - Odkazy na detail zastupitele (`/politicians/{id}`) a firmy (`/entities/{id}`)
 - Webová stránka `/signals` s přehledovou tabulkou
 - API endpoint `GET /api/signals`
 - Informační disclaimer o interpretaci signálů
+
+### Politici (nové)
+
+Samostatná sekce pro zastupitele města (`PoliticianService`):
+- **Stránka `/politicians`** — card grid s přehledem všech 51 zastupitelů
+  - Iniciálový avatar, strana, rok voleb, počet hlasů
+  - Inline přehled firem a smluv přímo v kartě zastupitele
+  - Filtrování: Všichni / S vazbou na firmu / Bez vazby (Alpine.js)
+  - Souhrnné statistiky (celkem zastupitelů, s vazbou, počet stran)
+- **Stránka `/politicians/{id}`** — detailní profil zastupitele
+  - Hero karta s gradient hlavičkou a KPI (firmy, smlouvy, celkový objem, volby)
+  - Volební historie (2014, 2018, 2022) jako vizuální karty
+  - Firmy ve vazbě — role, počet smluv, objem, top 5 smluv s prolinky
+  - Odkazy na detail entity, graf vztahů
+- Data z Volby.cz (volební výsledky) + ARES VR (statutární orgány) + Registr smluv (smlouvy)
 
 ### Grafová vizualizace vztahů (nové)
 
@@ -117,7 +133,9 @@ Laravel 12 + Blade + Tailwind CSS 4 + Alpine.js:
 | `/subsidies/{id}` | Detail dotace |
 | `/entities` | Subjekty — filtry dle typu, vyhledávání, počet vazeb |
 | `/entities/{id}` | Detail subjektu — agregované statistiky, časová osa, role u vazeb, ARES data |
-| `/signals` | Signály — koncentrace zakázek, nejvyšší smlouvy, příjemci dotací |
+| `/politicians` | Zastupitelé — přehled zastupitelů, vazby na firmy, filtrování |
+| `/politicians/{id}` | Detail zastupitele — profil, volební historie, firmy, smlouvy |
+| `/signals` | Signály — koncentrace zakázek, střety zájmů (karty), nejvyšší smlouvy, dotace |
 | `/graph/{id}` | Interaktivní graf vztahů subjektu (D3.js force-directed) |
 | `/ares` | ARES vyhledávání — hledání firem podle názvu nebo IČO |
 | `/search` | Globální vyhledávání — dokumenty, smlouvy, subjekty, dotace |
@@ -159,6 +177,7 @@ Business logika je oddělena od controllerů do servisních tříd:
 | `AresService` | HTTP klient pro ARES REST API s cachováním |
 | `SignalService` | Detekce anomálií: koncentrace zakázek, dotací, vysoké smlouvy, střety zájmů |
 | `GraphService` | Sestavení dat grafu vztahů (nodes, edges) pro D3.js vizualizaci |
+| `PoliticianService` | Přehled zastupitelů, vazby na firmy, volební historie, detailní profily |
 
 ### Controllery
 
@@ -174,6 +193,7 @@ Tenké controllery delegují na services — žádná business logika v controll
 | `AresController` | `/ares`, `/ares/search` |
 | `SearchController` | `/search` |
 | `SignalController` | `/signals` |
+| `PoliticianController` | `/politicians`, `/politicians/{id}` |
 | `GraphController` | `/graph/{entity}` |
 | `StatsApiController` | `/api/stats` |
 | `EntityApiController` | `/api/entities/*` |
@@ -214,18 +234,18 @@ bosko-strazce/
 ├── laravel/                       # Laravel webová aplikace (hlavní stack)
 │   ├── app/
 │   │   ├── Models/                # Eloquent modely (6)
-│   │   ├── Services/              # Business logika (9 services)
-│   │   ├── Http/Controllers/      # Web controllery (9) + API (4)
+│   │   ├── Services/              # Business logika (10 services)
+│   │   ├── Http/Controllers/      # Web controllery (10) + API (4)
 │   │   └── Console/Commands/      # Artisan příkazy (import, collect)
 │   ├── database/
 │   │   ├── migrations/            # Migrace (6 tabulek)
 │   │   └── database.sqlite        # Laravel SQLite databáze
 │   ├── resources/
-│   │   ├── views/                 # Blade šablony (13 šablon, 4 komponenty)
+│   │   ├── views/                 # Blade šablony (15 šablon, 4 komponenty)
 │   │   ├── css/app.css            # Tailwind 4 + custom theme
 │   │   └── js/app.js              # Alpine.js
 │   ├── routes/
-│   │   ├── web.php                # 14 web routes
+│   │   ├── web.php                # 16 web routes
 │   │   └── api.php                # 4 API routes
 │   └── public/                    # Veřejný adresář (Vite build)
 │
@@ -418,7 +438,7 @@ npm run build                         # Jednorázový build CSS/JS do public/bui
 
 - PHP 8.3 + Laravel 12
 - Eloquent ORM (6 modelů: Document, Attachment, Entity, Contract, Subsidy, EntityLink)
-- Service Layer (9 služeb: Stats, Document, Contract, Entity, Subsidy, Search, Ares, Signal, Graph)
+- Service Layer (10 služeb: Stats, Document, Contract, Entity, Subsidy, Search, Ares, Signal, Graph, Politician)
 - Blade šablony + Tailwind CSS 4 + Alpine.js (Vite build)
 - SQLite (laravel/database/database.sqlite)
 - REST API (4 endpointy)
@@ -443,8 +463,8 @@ npm run build                         # Jednorázový build CSS/JS do public/bui
   - Dependency Injection: controllery přijímají services přes constructor
   - Tenké controllery: žádná business logika, pouze HTTP concerns
 - Eloquent modely s relacemi v `app/Models/`
-- Services v `app/Services/` (9 servisních tříd)
-- Controllers v `app/Http/Controllers/` (9 web + 4 API)
+- Services v `app/Services/` (10 servisních tříd)
+- Controllers v `app/Http/Controllers/` (10 web + 4 API)
 - Blade šablony v `resources/views/` s Tailwind CSS 4 + Alpine.js
 - Migrační soubory v `database/migrations/`
 - Artisan commands v `app/Console/Commands/`

@@ -42,10 +42,10 @@ Implementované vztahy (`entity_links`):
 
 ### ✅ Webové rozhraní a API
 
-- 11 web routes (dashboard, dokumenty, smlouvy, dotace, subjekty, ARES, vyhledávání)
-- 4 API endpointy (stats, entities, relations)
+- 16 web routes (dashboard, dokumenty, smlouvy, dotace, subjekty, politici, signály, graf, ARES, vyhledávání)
+- 4 API endpointy (stats, entities, relations, signals, graph)
 - Moderní design (Tailwind CSS 4 + Alpine.js)
-- Service layer (7 services, SOLID architektura)
+- Service layer (10 services, SOLID architektura)
 
 ---
 
@@ -154,6 +154,15 @@ Implementované vztahy (`entity_links` s `linked_type='entity'`):
 - [x] Agregované statistiky (celková/průměrná částka smluv, počet dotací)
 - [x] Timeline: chronologická osa smluv a dotací entity
 - [ ] Filtrování smluv/dokumentů/dotací dle období (TODO)
+
+### ~~Zastupitelé (Politici)~~ ✅ HOTOVO
+
+- [x] Samostatná stránka `/politicians` — card grid s filtry (všichni / s vazbou / bez vazby)
+- [x] Detail zastupitele `/politicians/{id}` — profil, volební historie, firmy, top smlouvy
+- [x] `PoliticianService` — přehled zastupitelů, vazby na firmy, volební data
+- [x] `PoliticianController` s route model binding na `Entity`
+- [x] Navigační položka „Politici" v hlavním menu
+- [x] Redesign střetů zájmů na `/signals` — vizuální karty seskupené dle osoby s prolinky na profil
 
 ### Case view
 
