@@ -1,162 +1,214 @@
 ## Dlouhodobý cíl
 
-Vytvořit otevřenou „mapu vztahů“ veřejného prostoru města Boskovice, která:
+Vytvořit otevřenou „mapu vztahů" veřejného prostoru města Boskovice, která:
 
 - propojuje dokumenty, smlouvy, dotace a registry do jednoho grafu vztahů,
 - umožňuje sledovat vazby mezi subjekty (osoby, firmy, orgány města, projekty, nemovitosti),
 - identifikuje vzory a nesrovnalosti (koncentrace zakázek, střety zájmů, časové souvislosti),
-- nikdy sama „neobviňuje“ – pouze ukazuje data a vztahy, interpretaci nechává na člověku.
+- nikdy sama „neobviňuje" – pouze ukazuje data a vztahy, interpretaci nechává na člověku.
 
 Boskovice slouží jako laboratoř, architektura musí být přenositelná na další města.
 
 ---
 
-## 1. Doménový model: entity a vztahy
+## Aktuální stav (co je hotové)
 
-- Definovat základní typy **entit**:
-  - osoba (fyzická),
-  - firma / organizace,
-  - orgán města (zastupitelstvo, rada, komise, výbory),
-  - projekt / akce,
-  - smlouva,
-  - dotace,
-  - nemovitost (adresní bod / parcela),
-  - dokument (už existuje),
-  - událost (např. schválení, hlasování, zahájení stavby).
-- U každého typu jasně popsat:
-  - jaký má primární identifikátor (IČO, ID smlouvy, ID dotace, URL, kombinace data a názvu),
-  - z jakých zdrojů se plní (Boskovice web, Hlídač státu, ARES, ČÚZK, Volby.cz, atd.).
-- Definovat typy **vztahů (relations)**:
-  - osoba ↔ firma: člen orgánu, vlastník, jednatel,
-  - subjekt ↔ smlouva: objednatel, dodavatel,
-  - subjekt ↔ dotace: příjemce, poskytovatel,
-  - subjekt ↔ dokument: zmíněn, autor, adresát,
-  - subjekt ↔ nemovitost: vlastník, nájemce,
-  - projekt ↔ smlouva / dotace / dokument: financován, schválen, realizován,
-  - událost ↔ subjekt / dokument: hlasoval, rozhodl, podal žádost.
-- Vytvořit krátký technický popis (ontologii) v podobě:
-  - seznam typů entit,
-  - seznam typů vztahů,
-  - povinné atributy (čas, zdroj, role, identifikátory).
+### ✅ Doménový model: základní entity a vztahy
 
-> Cíl: jeden zdroj pravdy pro další agenty, jaké entity a vztahy mají vytvářet.
+Implementováno v DB (SQLite) + Eloquent modelech:
 
----
+| Entita | Tabulka | Identifikátor | Zdroj |
+|--------|---------|----------------|-------|
+| Firma / organizace | `entities` | IČO | Hlídač státu, ARES, extrakce z fulltextu |
+| Smlouva | `contracts` | `external_id` (Hlídač státu) | Hlídač státu API |
+| Dotace | `subsidies` | `external_id` (Hlídač státu) | Hlídač státu API |
+| Dokument | `documents` | `source_url` | Web města Boskovice |
+| Příloha | `attachments` | `url` | Web města Boskovice |
 
-## 2. Naplnění grafu z existujících dat
+Implementované vztahy (`entity_links`):
 
-- **Smlouvy z Registru smluv (Hlídač státu)**:
-  - pro každou smlouvu vytvořit entity pro objednatele (město Boskovice) a dodavatele (firma),
-  - vytvořit vztahy:
-    - město Boskovice –[objednatel]→ smlouva,
-    - firma –[dodavatel]→ smlouva.
-- **Dotace (Hlídač státu – Dotace/Hledat)**:
-  - pro každou dotaci vytvořit entity pro příjemce a poskytovatele,
-  - vytvořit vztahy:
-    - poskytovatel –[poskytovatel_dotace]→ dotace,
-    - příjemce –[příjemce_dotace]→ dotace.
-- **Dokumenty města Boskovice**:
-  - z fulltextu a metadat doplnit vztahy:
-    - subjekt –[zmíněn_v_dokumentu]→ dokument (z IČO, názvů firem, jmen osob),
-    - dokument –[souvisí_se_smlouvou/dotací]→ smlouva / dotace (pozdější krok, přes ID, spisovou značku nebo název).
-- Zajistit, že každý vztah má:
-  - odkaz na **zdrojový dokument** / API odpověď,
-  - pokud možno **krátký úryvek textu** nebo ID přílohy jako důkaz.
+| Vztah | Role | Zdroj |
+|-------|------|-------|
+| subjekt → smlouva | `publisher`, `counterparty` | Hlídač státu |
+| subjekt → dotace | `recipient` | Hlídač státu |
+| subjekt → dokument | `mentioned` | Extrakce IČO z fulltextu |
+
+### ✅ ARES integrace
+
+- Python batch enrichment (`src/collectors/ares.py`)
+- Laravel live lookup + cache (`app/Services/AresService.php`)
+- Webová stránka `/ares` pro vyhledávání
+- Automatické obohacení entit při zobrazení detailu
+
+### ✅ Webové rozhraní a API
+
+- 11 web routes (dashboard, dokumenty, smlouvy, dotace, subjekty, ARES, vyhledávání)
+- 4 API endpointy (stats, entities, relations)
+- Moderní design (Tailwind CSS 4 + Alpine.js)
+- Service layer (7 services, SOLID architektura)
 
 ---
 
-## 3. Integrace dalších registrů (po vrstvách)
+## 1. Aktivovat sběr dat (BLOKUJÍCÍ — nutné pro další práci)
 
-Postupné rozšíření grafu o další otevřené registry:
+> Bez reálných dat z Hlídače státu nelze testovat vztahy, signály ani pokročilé UI.
 
-- **Justice.cz / obchodní rejstřík**:
-  - cíl: navázat osoby (statutáři, vlastníci, společníci) na firmy, které vystupují ve smlouvách a dotacích,
-  - vztahy typu:
-    - osoba –[statutár_firmy]→ firma,
-    - osoba –[společník/akcionář]→ firma.
-- **RÚIAN / ISKN / ČÚZK**:
-  - cíl: nemovitosti, na které se vztahují rozhodnutí města, projekty, dotace a smlouvy,
-  - vztahy typu:
-    - firma/osoba –[vlastní]→ nemovitost,
-    - projekt –[realizován_na]→ nemovitost.
-- **Volby.cz + Evidence veřejných funkcionářů**:
-  - cíl: přehled veřejných funkcí a mandátů osob, které se objevují ve firmách či smlouvách,
-  - vztahy typu:
-    - osoba –[zastupitel/radní/člen_komise]→ orgán města,
-    - osoba –[veřejný_funkcionář]→ funkce.
-
-> Každý nový registr = nový collector, nové typy entit/vztahů, zápis do `entities` a `entity_links`.
+- [ ] Zaregistrovat se na https://www.hlidacstatu.cz/api
+- [ ] Nastavit `HLIDAC_STATU_TOKEN` v `.env`
+- [ ] Spustit sběr smluv: `python main.py collect-contracts`
+- [ ] Spustit sběr dotací: `python main.py collect-subsidies`
+- [ ] Obohacení: `python main.py extract-entities && python main.py enrich-entities`
+- [ ] Import do Laravelu: `php artisan bosko:import`
+- [ ] Ověřit data v UI — smlouvy, dotace, propojené subjekty, ARES data
 
 ---
 
-## 4. „Signály“ – první heuristiky nesrovnalostí
+## 2. Rozšířit doménový model (nové typy entit)
 
-Z nasbíraného grafu počítat jednoduché, vysvětlitelné signály:
+Chybějící typy entit, které je třeba přidat do DB + Eloquent modelů:
 
-- **Koncentrace zakázek / dotací u subjektu**:
-  - pro každou firmu spočítat:
-    - počet smluv s městem Boskovice,
-    - součet částek,
-    - období (rolling okno např. 2–3 roky),
-  - subjekt, který výrazně vyčnívá nad medián / průměr, označit jako „zajímavý“ pro ruční analýzu.
-- **Sekvence „rozhodnutí → smlouva → dotace“**:
-  - hledat časové řetězce toho typu:
-    - dokument/rozhodnutí města o projektu nebo záměru,
-    - krátce poté smlouva s konkrétní firmou,
-    - navázaná dotace (národní/EU).
-  - tyto sekvence evidovat jako „case“ s časovou osou a odkazy na dokumenty.
-- **Možné střety zájmů (role osoby)**:
-  - osoba je:
-    - na straně města (zastupitel, radní, člen komise),
-    - zároveň má významnou roli ve firmě, která získává zakázky nebo dotace,
-  - systém jen označí „možný střet zájmů – zkontroluj“, s přímými odkazy na všechny zdrojové dokumenty.
+| Entita | Popis | Zdroj dat |
+|--------|-------|-----------|
+| **Osoba (fyzická)** | Zastupitelé, radní, členové komisí, statutáři firem | Volby.cz, Justice.cz, zápisy ZM/RM |
+| **Orgán města** | Zastupitelstvo, rada, komise, výbory | Web města, zápisy ZM/RM |
+| **Projekt / akce** | Investiční akce, projekty města | Dokumenty, rozpočty, dotace |
+| **Nemovitost** | Parcely, budovy dotčené projekty | RÚIAN/ČÚZK |
+| **Událost** | Hlasování, schválení, zahájení stavby | Zápisy ZM/RM |
 
-> Signály nikdy nejsou „verdikt“. Jsou to jen upozornění s vysvětlitelným výpočtem a trasovatelnými zdroji.
+Nové typy vztahů:
+
+| Vztah | Popis |
+|-------|-------|
+| osoba → firma | statutár, společník, jednatel |
+| osoba → orgán města | zastupitel, radní, člen komise |
+| projekt → smlouva / dotace | financován, realizován |
+| projekt → nemovitost | realizován na parcele/adrese |
+| firma/osoba → nemovitost | vlastník, nájemce |
+| událost → subjekt / dokument | hlasoval, rozhodl, podal žádost |
+
+Implementace:
+- [ ] Přidat `entity_type` hodnoty: `person`, `city_body`, `project`, `property`, `event`
+- [ ] Přidat `role` hodnoty do `entity_links`
+- [ ] Přidat Eloquent scope/filtr pro nové typy
+- [ ] Aktualizovat UI: detail entity zobrazí role specificky (statutár vs. dodavatel vs. zastupitel)
 
 ---
 
-## 5. UX a API pro analytiky
+## 3. Integrace dalších registrů
 
-- Vylepšit **detail entity**:
-  - agregovat všechny smlouvy, dotace, dokumenty a nemovitosti,
-  - ukázat role (`dodavatel`, `objednatel`, `příjemce_dotace`, `zmíněn_v_dokumentu`, …),
-  - umožnit rychlé filtrování podle období a typu vztahu.
-- Přidat **pohled na „case“**:
-  - vizualizace konkrétního signálu (časová osa, zapojené entity, částky, zdroje),
-  - snadný export / sdílení (např. PDF report, JSON snapshot).
-- Připravit **interní API**:
-  - endpointy typu:
-    - `/api/entities/{id}`,
-    - `/api/entities/{id}/relations`,
-    - `/api/signals`,
-  - aby další nástroje (např. tvoje skripty, jiné agenty, grafové vizualizéry) mohly data snadno využít.
+### Justice.cz / obchodní rejstřík
+
+- Cíl: navázat osoby (statutáři, vlastníci) na firmy
+- Vztahy: osoba –[statutár]→ firma, osoba –[společník]→ firma
+- [ ] Implementovat `JusticeCollector` (HTML scraping nebo API)
+- [ ] Vytvořit entity typu `person` pro statutáry
+- [ ] Propojit s existujícími firmami v `entities`
+
+### Volby.cz + Evidence veřejných funkcionářů
+
+- Cíl: přehled veřejných funkcí osob, které se objevují ve firmách či smlouvách
+- Vztahy: osoba –[zastupitel/radní]→ orgán města
+- [ ] Implementovat `VolbyCollector`
+- [ ] Vytvořit entity typu `person` a `city_body`
+- [ ] Propojit osoby s firmami (cross-reference IČO, jména)
+
+### RÚIAN / ČÚZK
+
+- Cíl: nemovitosti dotčené rozhodnutími města
+- Vztahy: firma/osoba –[vlastní]→ nemovitost, projekt –[realizován_na]→ nemovitost
+- [ ] Implementovat `RuianCollector` (RÚIAN API / ČÚZK Nahlížení do KN)
+- [ ] Vytvořit entity typu `property`
+
+---
+
+## 4. „Signály" – heuristiky nesrovnalostí
+
+> Signály nikdy nejsou „verdikt". Jsou to jen upozornění s vysvětlitelným výpočtem a trasovatelnými zdroji.
+
+### Koncentrace zakázek / dotací
+
+- Pro každou firmu spočítat: počet smluv, součet částek, období (rolling 2–3 roky)
+- Subjekt výrazně nad mediánem = „zajímavý" pro ruční analýzu
+- [ ] Implementovat `SignalService` v Laravelu
+- [ ] Přidat `/signals` stránku s přehledem
+- [ ] API endpoint `/api/signals`
+
+### Sekvence „rozhodnutí → smlouva → dotace"
+
+- Hledat časové řetězce: dokument města → smlouva s firmou → dotace
+- Evidovat jako „case" s časovou osou a odkazy
+- [ ] Implementovat detekci sekvencí
+- [ ] Přidat „case view" s timeline vizualizací
+
+### Možné střety zájmů
+
+- Osoba je na straně města (zastupitel/radní) A zároveň má roli ve firmě s zakázkami
+- Systém označí „možný střet zájmů – zkontroluj" s odkazy na zdroje
+- [ ] Implementovat cross-referencing osob: veřejná funkce vs. role ve firmě
+- [ ] Vizualizace na detailu osoby
+
+---
+
+## 5. UX a pokročilé zobrazení
+
+### Detail entity — vylepšení
+
+- [ ] Filtrování smluv/dokumentů/dotací dle období
+- [ ] Zobrazení rolí u každé vazby (dodavatel, objednatel, příjemce...)
+- [ ] Agregované statistiky (celková částka smluv, počet dotací)
+- [ ] Timeline: chronologická osa všech vazeb entity
+
+### Case view
+
+- [ ] Vizualizace konkrétního signálu (časová osa, entity, částky, zdroje)
+- [ ] Export jako PDF report nebo JSON snapshot
+- [ ] Sdílitelný permalink
+
+### Grafová vizualizace
+
+- [ ] D3.js nebo Sigma.js graf vztahů
+- [ ] Interaktivní: klik na uzel = detail entity
+- [ ] Filtrování dle typu vztahu, období, částky
+
+### Rozšíření API
+
+- [ ] `GET /api/signals` — seznam detekovaných signálů
+- [ ] `GET /api/entities/{id}/timeline` — časová osa entity
+- [ ] `GET /api/graph/{id}` — graf vztahů kolem entity (pro vizualizéry)
 
 ---
 
 ## 6. Multi-city strategie
 
-- Oddělit konfiguraci **města**:
-  - IČO, doména, základní URL patterny, specifické collectory,
-  - tak aby bylo možné přidat další město bez zásahu do jádra.
-- Rozšířit datový model:
-  - přidat `city_id` / `city_code` ke všem tabulkám (`documents`, `entities`, `contracts`, `subsidies`, `entity_links`),
-  - nebo zvolit samostatné databáze per město (podle budoucího objemu dat).
-- Ujistit se, že web UI:
-  - umí přepínat město,
-  - zároveň zachovává možnost „globálního pohledu“ přes více měst (dlouhodobě).
+- [ ] Oddělit konfiguraci města (IČO, doména, URL patterny, specifické collectory)
+- [ ] Přidat `city_id` / `city_code` ke všem tabulkám
+- [ ] Web UI: přepínání města + globální pohled přes více měst
+- [ ] PostgreSQL místo SQLite (pro produkční nasazení)
+- [ ] Laravel multi-tenancy pattern
+
+---
+
+## 7. Produkce a bezpečnost
+
+- [ ] Autentizace a autorizace (Laravel Sanctum)
+- [ ] Rate limiting na API
+- [ ] Nasazení (Laravel Forge / Docker)
+- [ ] Monitoring a alerting (Sentry, health checks)
+- [ ] Automatický scheduling sběru dat (Laravel Scheduler + Cron)
+- [ ] Tesseract OCR pro skenované PDF
+- [ ] NER (Named Entity Recognition) pro extrakci jmen osob z fulltextu
 
 ---
 
 ## Praktický postup pro další agenty (shrnutí)
 
-1. Držet krok se `STAV_PROJEKTU.md` – tam je technický stav a co už běží v Boskovicích.
-2. Podle tohoto dokumentu:
-   - udržovat a rozšiřovat ontologii (typy entit a vztahů),
-   - přidávat nové integrace na veřejné registry,
-   - naplňovat `entity_links` konkrétními vazbami,
-   - implementovat a ladit signály (vždy vysvětlitelně, s odkazy na zdroje).
-3. Všechny nové vztahy a signály musí být:
+1. Držet krok se `STAV_PROJEKTU.md` – tam je technický stav a co už běží.
+2. **Nejdříve aktivovat data** (sekce 1) – bez smluv a dotací nelze pracovat na vztazích.
+3. Rozšiřovat ontologii (sekce 2) a přidávat registry (sekce 3) po vrstvách.
+4. Implementovat signály (sekce 4) — vždy vysvětlitelně, s odkazy na zdroje.
+5. Všechny nové vztahy a signály musí být:
    - dohledatelné ke zdrojovým dokumentům,
-   - pochopitelné pro člověka (žádné „černé skříňky“),
+   - pochopitelné pro člověka (žádné „černé skříňky"),
    - znovu vypočitatelné (deterministické).
-
+6. Nové services přidávat do `app/Services/`, nové collectory do `src/collectors/`.
+7. Dodržovat SOLID principy — tenké controllery, DI, single responsibility.

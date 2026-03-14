@@ -57,41 +57,60 @@ Implementovány kolektory pro:
 
 > Ke spuštění sběru smluv a dotací je potřeba nastavit `HLIDAC_STATU_TOKEN` v `.env`.
 
-### Integrace ARES (nové)
+### Integrace ARES (kompletní)
 
-- **Laravel AresService** — nativní HTTP klient pro ARES REST API
+Dvouvrstvá integrace — Python kolektor (batch enrichment) + Laravel service (live lookup):
+
+- **Python `AresCollector`** (`src/collectors/ares.py`):
+  - Batch obohacení všech entit s IČO
+  - Uložení metadat do `metadata_json`
+  - Rate limiting 0.15s per request
+- **Laravel `AresService`** (`app/Services/AresService.php`):
+  - Nativní HTTP klient pro ARES REST API
   - Vyhledávání firem podle názvu (POST `/vyhledat`)
   - Lookup podle IČO (GET `/{ico}`)
-  - 24h cache výsledků
+  - 24h cache výsledků přes Laravel Cache
   - Automatické obohacení entit při zobrazení detailu
-- **Webová stránka `/ares`** — interaktivní vyhledávání v registru ARES
-- **Detail subjektu** — automaticky zobrazuje data z ARES (sídlo, právní forma, datum vzniku, CZ-NACE)
+- **Webová stránka `/ares`** — interaktivní vyhledávání v registru ARES (dle názvu i IČO)
+- **Detail subjektu** — automaticky zobrazuje strukturovaná data z ARES (sídlo, právní forma, datum vzniku, CZ-NACE, finanční úřad)
 
-### Webové rozhraní (Laravel) — nový design
+### Webové rozhraní (Laravel) — moderní design
 
 Laravel 12 + Blade + Tailwind CSS 4 + Alpine.js:
-- `/` -- Dashboard (statistiky, poslední dokumenty, smlouvy, top dodavatelé)
-- `/documents` -- Procházení dokumentů (filtry dle sekce, fulltext, paginace)
-- `/documents/{id}` -- Detail dokumentu s přílohami a propojenými subjekty
-- `/contracts` -- Procházení smluv (částka, datum, protistrana, paginace)
-- `/contracts/{id}` -- Detail smlouvy
-- `/subsidies` -- Procházení dotací (filtry dle roku, vyhledávání, paginace)
-- `/subsidies/{id}` -- Detail dotace
-- `/entities` -- Procházení subjektů (filtry dle typu, vyhledávání)
-- `/entities/{id}` -- Detail subjektu se všemi propojeními + ARES data
-- `/ares` -- Vyhledávání v registru ARES (podle názvu nebo IČO)
-- `/search` -- Globální vyhledávání přes dokumenty, smlouvy, subjekty i dotace
+
+| Route | Popis |
+|-------|-------|
+| `/` | Dashboard — statistiky, poslední dokumenty, smlouvy, top dodavatelé |
+| `/documents` | Dokumenty — filtry dle sekce, fulltext, paginace |
+| `/documents/{id}` | Detail dokumentu s přílohami a propojenými subjekty |
+| `/contracts` | Smlouvy — částka, datum, protistrana, paginace |
+| `/contracts/{id}` | Detail smlouvy |
+| `/subsidies` | Dotace — filtry dle roku, vyhledávání, paginace |
+| `/subsidies/{id}` | Detail dotace |
+| `/entities` | Subjekty — filtry dle typu, vyhledávání, počet vazeb |
+| `/entities/{id}` | Detail subjektu — smlouvy, dokumenty, dotace + ARES data |
+| `/ares` | ARES vyhledávání — hledání firem podle názvu nebo IČO |
+| `/search` | Globální vyhledávání — dokumenty, smlouvy, subjekty, dotace |
+
+Design:
+- Indigo/slate profesionální paleta
+- Gradient hero banner na dashboardu
+- Heroicons SVG ikony v navigaci a sekcích
+- Responzivní mobilní menu (Alpine.js)
+- Inter font, zaoblené karty se stíny, barevné badge pro částky a sekce
 
 ### REST API
 
-- `/api/stats` -- Celkové statistiky (počty, součty částek, sekce)
-- `/api/entities` -- Seznam subjektů (filtry, paginace)
-- `/api/entities/{id}` -- Detail subjektu
-- `/api/entities/{id}/relations` -- Všechny vztahy subjektu s napojenými záznamy
+| Endpoint | Popis |
+|----------|-------|
+| `GET /api/stats` | Celkové statistiky (počty, součty částek, sekce) |
+| `GET /api/entities` | Seznam subjektů (filtry, paginace) |
+| `GET /api/entities/{id}` | Detail subjektu |
+| `GET /api/entities/{id}/relations` | Všechny vztahy subjektu s napojenými záznamy |
 
 ---
 
-## Architektura (SOLID refactoring)
+## Architektura (SOLID)
 
 ### Service Layer
 
@@ -141,11 +160,20 @@ bosko-strazce/
 │   ├── downloader.py              # HTTP klient s rate limiting
 │   ├── deduplication.py           # Detekce duplicit
 │   ├── collectors/                # Kolektory dat
-│   └── extractors/                # Extraktory textu a entit
+│   │   ├── uredni_deska.py        # Úřední deska (JSON-LD)
+│   │   ├── zapisy.py              # Zápisy ZM/RM
+│   │   ├── documents.py           # Vyhlášky, rozpočty, poskytnuté info
+│   │   ├── archive.py             # Archiv úřední desky
+│   │   ├── hlidac_smluv.py        # Smlouvy (Hlídač státu API)
+│   │   ├── cedr.py                # Dotace (Hlídač státu API)
+│   │   └── ares.py                # ARES batch enrichment
+│   └── extractors/
+│       ├── pdf.py                 # Text z PDF/DOCX/RTF/HTML
+│       └── entity_extractor.py    # Extrakce IČO z fulltextu
 │
 ├── laravel/                       # Laravel webová aplikace (hlavní stack)
 │   ├── app/
-│   │   ├── Models/                # Eloquent modely (6 modelů)
+│   │   ├── Models/                # Eloquent modely (6)
 │   │   ├── Services/              # Business logika (7 services)
 │   │   ├── Http/Controllers/      # Web controllery (7) + API (2)
 │   │   └── Console/Commands/      # Artisan příkazy (import, collect)
@@ -153,12 +181,12 @@ bosko-strazce/
 │   │   ├── migrations/            # Migrace (6 tabulek)
 │   │   └── database.sqlite        # Laravel SQLite databáze
 │   ├── resources/
-│   │   ├── views/                 # Blade šablony + Tailwind CSS
-│   │   ├── css/app.css            # Tailwind 4 konfigurace
-│   │   └── js/app.js              # Alpine.js inicializace
+│   │   ├── views/                 # Blade šablony (13 šablon, 4 komponenty)
+│   │   ├── css/app.css            # Tailwind 4 + custom theme
+│   │   └── js/app.js              # Alpine.js
 │   ├── routes/
-│   │   ├── web.php                # Webové routes
-│   │   └── api.php                # API routes
+│   │   ├── web.php                # 11 web routes
+│   │   └── api.php                # 4 API routes
 │   └── public/                    # Veřejný adresář (Vite build)
 │
 └── data/
@@ -179,7 +207,7 @@ python -m pip install -r requirements.txt
 # Laravel aplikace
 cd laravel
 composer install
-npm install && npm run build
+npm install
 ```
 
 ### Nastavení API klíčů
@@ -192,14 +220,9 @@ cp .env.example .env
 ### Sběr dat (Python)
 
 ```bash
-# Sběr dat z webu města
 python main.py collect-all            # Vše najednou + stažení + extrakce
-
-# Sběr externích dat (vyžaduje HLIDAC_STATU_TOKEN)
-python main.py collect-contracts      # Smlouvy z Registru smluv
-python main.py collect-subsidies      # Dotace z CEDR
-
-# Obohacení dat
+python main.py collect-contracts      # Smlouvy z Registru smluv (vyžaduje token)
+python main.py collect-subsidies      # Dotace z CEDR (vyžaduje token)
 python main.py download-files         # Stáhnout PDF přílohy
 python main.py extract-text           # Extrahovat text ze souborů
 python main.py extract-entities       # Najít IČO v textech dokumentů
@@ -219,8 +242,18 @@ php artisan bosko:import
 php artisan bosko:collect collect-all
 php artisan bosko:collect collect-contracts
 
-# Webové rozhraní
-php artisan serve --port=8000         # http://localhost:8000
+# Lokální vývoj (dva terminály)
+php artisan serve --port=8000         # Terminál 1: PHP server
+npm run dev                           # Terminál 2: Vite dev server (CSS/JS + HMR)
+
+# Otevřít http://localhost:8000
+```
+
+### Produkční build
+
+```bash
+cd laravel
+npm run build                         # Jednorázový build CSS/JS do public/build/
 ```
 
 ---
@@ -319,13 +352,13 @@ php artisan serve --port=8000         # http://localhost:8000
 - **Hlídač státu**: `https://api.hlidacstatu.cz/Api/v2/` (token v .env)
   - `/Smlouvy/Hledat?dotaz=ico:00279978` -- smlouvy
   - `/Dotace/Hledat?dotaz=ico:00279978` -- dotace
-- **ARES**: `https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/{ICO}` (bez auth, 500 req/min)
+- **ARES**: `https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/` (bez auth, 500 req/min)
   - GET `/{ico}` — detail firmy
-  - POST `/vyhledat` — vyhledávání dle názvu
+  - POST `/vyhledat` — vyhledávání dle názvu (parametry: `obchodniJmeno`, `pocet`, `start`)
 
 ### Technologický stack
 
-#### Sběr dat (Python — stále aktivní)
+#### Sběr dat (Python)
 
 - Python 3.14
 - requests + BeautifulSoup4 + lxml
@@ -334,29 +367,29 @@ php artisan serve --port=8000         # http://localhost:8000
 - SQLite (data/db/boskovice.db)
 - CLI přes argparse v `main.py`
 
-#### Webová aplikace (Laravel — hlavní stack)
+#### Webová aplikace (Laravel)
 
 - PHP 8.3 + Laravel 12
 - Eloquent ORM (6 modelů: Document, Attachment, Entity, Contract, Subsidy, EntityLink)
 - Service Layer (7 služeb: Stats, Document, Contract, Entity, Subsidy, Search, Ares)
 - Blade šablony + Tailwind CSS 4 + Alpine.js (Vite build)
 - SQLite (laravel/database/database.sqlite)
-- REST API (`/api/stats`, `/api/entities`, `/api/entities/{id}/relations`)
+- REST API (4 endpointy)
 - Artisan příkazy:
   - `php artisan bosko:import` — import z legacy Python databáze
   - `php artisan bosko:collect {command}` — spouštění Python kolektorů
 
 ### Konvence kódu
 
-#### Python (sběr dat)
+#### Python
 
-- Čistá architektura: kolektory v `src/collectors/`, extraktory v `src/extractors/`
+- Kolektory v `src/collectors/`, extraktory v `src/extractors/`
 - Každý kolektor má metodu `collect() -> int`
 - Repository pattern v `Database` třídě
 - HTTP throttling v `Downloader` (1 req/s pro web města, 0.15s pro ARES)
 - Doménové entity jako dataclasses v `src/models.py`
 
-#### Laravel (web + API)
+#### Laravel
 
 - **SOLID principy**:
   - Single Responsibility: každý service má jednu zodpovědnost
@@ -368,41 +401,3 @@ php artisan serve --port=8000         # http://localhost:8000
 - Blade šablony v `resources/views/` s Tailwind CSS 4 + Alpine.js
 - Migrační soubory v `database/migrations/`
 - Artisan commands v `app/Console/Commands/`
-
----
-
-## Doporučené další kroky
-
-### Priorita 1: Aktivovat externí zdroje
-
-1. Zaregistrovat se na https://www.hlidacstatu.cz/api
-2. Nastavit token v `.env`
-3. Spustit `php artisan bosko:collect collect-contracts` a `php artisan bosko:collect collect-subsidies`
-4. Spustit `php artisan bosko:import` pro synchronizaci dat do Laravelu
-
-### Priorita 2: Rozšířit doménový model (NEXT_STEPS_RELATIONS.md)
-
-- Přidat Eloquent modely: Person, CityDepartment, Project, Property, Event
-- Přidat typy vztahů: statutár firmy, vlastník nemovitosti, zastupitel, člen komise
-- Integrace Justice.cz, Volby.cz, ČÚZK
-- Implementovat signály (koncentrace zakázek, střety zájmů, časové sekvence)
-
-### Priorita 3: Zlepšit pokrytí fulltextu
-
-- Integrace Tesseract OCR pro skenované PDF
-- Rozšířit entity extrakci o jména osob (NER)
-
-### Priorita 4: Pokročilá analýza a UX
-
-- Timeline view: chronologické zobrazení rozhodnutí a smluv
-- Case view: vizualizace konkrétního signálu
-- Grafová vizualizace vztahů (např. D3.js, Sigma.js)
-- Export reportů (PDF, JSON)
-
-### Priorita 5: Multi-city a produkce
-
-- Abstrakce konfigurace pro jiná města (IČO, URL patterny)
-- PostgreSQL místo SQLite
-- Laravel multi-tenancy
-- Autentizace a autorizace (Laravel Sanctum)
-- Nasazení (Laravel Forge / Docker)
