@@ -404,6 +404,42 @@ class Database:
             ).fetchall()
             return {row["ico"] for row in rows}
 
+    def get_entity_by_name_and_type(
+        self, name: str, entity_type: str,
+    ) -> Optional[dict]:
+        with self._connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM entities WHERE name = ? AND entity_type = ?",
+                (name, entity_type),
+            ).fetchone()
+            return dict(row) if row else None
+
+    def save_person_entity(
+        self,
+        name: str,
+        source: str,
+        metadata_json: Optional[str] = None,
+        entity_type: str = "person",
+    ) -> int:
+        with self._connection() as conn:
+            existing = conn.execute(
+                "SELECT id FROM entities WHERE name = ? AND entity_type = ?",
+                (name, entity_type),
+            ).fetchone()
+            if existing:
+                conn.execute(
+                    "UPDATE entities SET metadata_json = ?, source = ? WHERE id = ?",
+                    (metadata_json, source, existing["id"]),
+                )
+                return existing["id"]
+
+            cursor = conn.execute(
+                """INSERT INTO entities (name, entity_type, ico, source, metadata_json, created_at)
+                   VALUES (?, ?, NULL, ?, ?, ?)""",
+                (name, entity_type, source, metadata_json, datetime.now().isoformat()),
+            )
+            return cursor.lastrowid
+
     # --- Entity Link CRUD ---
 
     def save_entity_link(self, link: EntityLink):

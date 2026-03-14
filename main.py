@@ -65,6 +65,20 @@ def run_enrich_entities(database: Database, downloader: Downloader):
     return collector.enrich_all_entities()
 
 
+def run_collect_persons(database: Database, downloader: Downloader):
+    from src.collectors.justice import JusticeCollector
+
+    collector = JusticeCollector(database, downloader)
+    return collector.collect()
+
+
+def run_collect_volby(database: Database, downloader: Downloader):
+    from src.collectors.volby import VolbyCollector
+
+    collector = VolbyCollector(database, downloader)
+    return collector.collect()
+
+
 def run_extract_entities(database: Database):
     from src.extractors.entity_extractor import extract_entities_from_documents
 
@@ -181,6 +195,8 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("collect-contracts", help="Collect contracts from Hlídač státu")
     subparsers.add_parser("collect-subsidies", help="Collect subsidies from CEDR via Hlídač státu")
     subparsers.add_parser("enrich-entities", help="Enrich entities with ARES data")
+    subparsers.add_parser("collect-persons", help="Collect statutory reps from ARES VR (Justice.cz data)")
+    subparsers.add_parser("collect-volby", help="Collect elected council members from Volby.cz")
     subparsers.add_parser("extract-entities", help="Extract entity ICOs from document text")
     subparsers.add_parser("deduplicate", help="Mark duplicate documents")
     subparsers.add_parser("download-files", help="Download pending PDF attachments")
@@ -242,6 +258,8 @@ def main():
         "collect-contracts": lambda: run_collect_contracts(database, downloader),
         "collect-subsidies": lambda: run_collect_subsidies(database, downloader),
         "enrich-entities": lambda: run_enrich_entities(database, downloader),
+        "collect-persons": lambda: run_collect_persons(database, downloader),
+        "collect-volby": lambda: run_collect_volby(database, downloader),
         "download-files": lambda: run_download_files(database, downloader),
         "collect-all": lambda: _collect_all(database, downloader),
     }
@@ -282,6 +300,16 @@ def _collect_all(database: Database, downloader: Downloader):
         run_enrich_entities(database, downloader)
     except Exception as exc:
         logging.warning("ARES enrichment failed: %s", exc)
+
+    try:
+        run_collect_persons(database, downloader)
+    except Exception as exc:
+        logging.warning("Justice/person collection failed: %s", exc)
+
+    try:
+        run_collect_volby(database, downloader)
+    except Exception as exc:
+        logging.warning("Volby collection failed: %s", exc)
 
     logging.info("=== Collection complete ===")
     run_stats(database)

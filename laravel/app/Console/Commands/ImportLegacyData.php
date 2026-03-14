@@ -8,7 +8,7 @@ use PDO;
 
 class ImportLegacyData extends Command
 {
-    protected $signature = 'bosko:import {path? : Path to legacy SQLite database}';
+    protected $signature = 'bosko:import {path? : Path to legacy SQLite database} {--fresh : Truncate all tables before import}';
     protected $description = 'Import data from the legacy Python SQLite database';
 
     public function handle(): int
@@ -22,6 +22,10 @@ class ImportLegacyData extends Command
 
         $legacy = new PDO("sqlite:{$path}");
         $legacy->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        if ($this->option('fresh')) {
+            $this->truncateAll();
+        }
 
         $this->importDocuments($legacy);
         $this->importAttachments($legacy);
@@ -190,6 +194,19 @@ class ImportLegacyData extends Command
 
         $bar->finish();
         $this->newLine();
+    }
+
+    private function truncateAll(): void
+    {
+        $this->info('Truncating all tables...');
+        DB::statement('PRAGMA foreign_keys = OFF');
+        DB::table('entity_links')->truncate();
+        DB::table('subsidies')->truncate();
+        DB::table('contracts')->truncate();
+        DB::table('entities')->truncate();
+        DB::table('attachments')->truncate();
+        DB::table('documents')->truncate();
+        DB::statement('PRAGMA foreign_keys = ON');
     }
 
     private function importEntityLinks(PDO $legacy): void

@@ -53,16 +53,24 @@ Implementovány kolektory pro:
 - **Hlídač státu API** -- smlouvy z Registru smluv (Boskovice IČO 00279978) -- **2 462 smluv**
 - **Hlídač státu API** -- dotace z CEDR/IsRed/Eufondy -- **443 dotací**
 - **ARES REST API** -- detaily firem dle IČO (adresa, právní forma, datum vzniku)
-- **Entity extractor** -- regex extrakce IČO z fulltextu dokumentů -- **535 subjektů, 5 234 vazeb**
+- **ARES VR API** -- statutární orgány firem (předsedové, místopředsedové, členové) -- **1 126 osob, 884 vazeb**
+- **Volby.cz** -- zvolení zastupitelé Boskovice (2014, 2018, 2022) -- **51 unikátních osob, 81 vazeb**
+- **Entity extractor** -- regex extrakce IČO z fulltextu dokumentů
+
+**Celkem: 1 653 entit, 6 404 vazeb** (535 organizací, 1 117 osob, 1 orgán města).
 
 `HLIDAC_STATU_TOKEN` je nastaven v `.env`.
 
-### Signály (nové)
+### Signály (rozšířeno)
 
 Automatická detekce anomálií v datech (`SignalService`):
 - **Koncentrace zakázek** -- dodavatelé s objemem smluv výrazně nad mediánem (poměr k mediánu, závažnost)
 - **Koncentrace dotací** -- příjemci s nejvyššími částkami
 - **Nejvyšší smlouvy** -- top smlouvy dle částky
+- **Možné střety zájmů** (nové) -- zastupitelé × statutáři firem se zakázkami města (16 detekovaných)
+  - Cross-referencing na základě case-insensitive name matching
+  - Zobrazení s odkazem na osobu, firmu, počet smluv a celkovou částku
+  - Závažnost: `high` = firma má smlouvy s městem
 - Webová stránka `/signals` s přehledovou tabulkou
 - API endpoint `GET /api/signals`
 - Informační disclaimer o interpretaci signálů
@@ -129,7 +137,7 @@ Design:
 | `GET /api/entities` | Seznam subjektů (filtry, paginace) |
 | `GET /api/entities/{id}` | Detail subjektu |
 | `GET /api/entities/{id}/relations` | Všechny vztahy subjektu s napojenými záznamy |
-| `GET /api/signals` | Detekované signály (koncentrace, vysoké smlouvy, dotace) |
+| `GET /api/signals` | Detekované signály (koncentrace, vysoké smlouvy, dotace, střety zájmů) |
 | `GET /api/graph/{id}` | Graf vztahů entity (nodes + edges pro vizualizéry) |
 
 ---
@@ -149,7 +157,7 @@ Business logika je oddělena od controllerů do servisních tříd:
 | `SubsidyService` | Filtrování, paginace a relace dotací |
 | `SearchService` | Globální vyhledávání napříč všemi typy |
 | `AresService` | HTTP klient pro ARES REST API s cachováním |
-| `SignalService` | Detekce anomálií: koncentrace zakázek, dotací, vysoké smlouvy |
+| `SignalService` | Detekce anomálií: koncentrace zakázek, dotací, vysoké smlouvy, střety zájmů |
 | `GraphService` | Sestavení dat grafu vztahů (nodes, edges) pro D3.js vizualizaci |
 
 ### Controllery
@@ -196,7 +204,9 @@ bosko-strazce/
 │   │   ├── archive.py             # Archiv úřední desky
 │   │   ├── hlidac_smluv.py        # Smlouvy (Hlídač státu API)
 │   │   ├── cedr.py                # Dotace (Hlídač státu API)
-│   │   └── ares.py                # ARES batch enrichment
+│   │   ├── ares.py                # ARES batch enrichment
+│   │   ├── justice.py             # Statutáři firem (ARES VR API)
+│   │   └── volby.py               # Zastupitelé (Volby.cz scraping)
 │   └── extractors/
 │       ├── pdf.py                 # Text z PDF/DOCX/RTF/HTML
 │       └── entity_extractor.py    # Extrakce IČO z fulltextu
@@ -204,8 +214,8 @@ bosko-strazce/
 ├── laravel/                       # Laravel webová aplikace (hlavní stack)
 │   ├── app/
 │   │   ├── Models/                # Eloquent modely (6)
-│   │   ├── Services/              # Business logika (7 services)
-│   │   ├── Http/Controllers/      # Web controllery (7) + API (2)
+│   │   ├── Services/              # Business logika (9 services)
+│   │   ├── Http/Controllers/      # Web controllery (9) + API (4)
 │   │   └── Console/Commands/      # Artisan příkazy (import, collect)
 │   ├── database/
 │   │   ├── migrations/            # Migrace (6 tabulek)
@@ -257,6 +267,8 @@ python main.py download-files         # Stáhnout PDF přílohy
 python main.py extract-text           # Extrahovat text ze souborů
 python main.py extract-entities       # Najít IČO v textech dokumentů
 python main.py enrich-entities        # Doplnit info z ARES
+python main.py collect-persons        # Statutáři firem z ARES VR (Justice.cz data)
+python main.py collect-volby          # Zastupitelé Boskovice z Volby.cz
 python main.py deduplicate            # Označit duplicity
 ```
 
@@ -266,7 +278,8 @@ python main.py deduplicate            # Označit duplicity
 cd laravel
 
 # Import dat z Python databáze do Laravelu
-php artisan bosko:import
+php artisan bosko:import              # Přidání nových dat
+php artisan bosko:import --fresh      # Smazání + čistý reimport
 
 # Spuštění kolektorů přes Laravel
 php artisan bosko:collect collect-all
@@ -322,10 +335,10 @@ npm run build                         # Jednorázový build CSS/JS do public/bui
 |---------|-----|-------|
 | id | INTEGER PK | Auto ID |
 | name | TEXT | Název subjektu |
-| entity_type | TEXT | Typ (organization, person, city_department) |
-| ico | TEXT UNIQUE | IČO (nullable) |
-| source | TEXT | Zdroj dat (hlidac_statu, ares, document_extraction) |
-| metadata_json | TEXT | Strukturovaná data z ARES (JSON) |
+| entity_type | TEXT | Typ (organization, person, city_body) |
+| ico | TEXT UNIQUE | IČO (nullable — osoby nemají IČO) |
+| source | TEXT | Zdroj dat (hlidac_statu, ares, ares_vr, volby_cz, document_extraction) |
+| metadata_json | TEXT | Strukturovaná data z ARES/volby (JSON) |
 
 ### Tabulka `contracts`
 
@@ -360,9 +373,9 @@ npm run build                         # Jednorázový build CSS/JS do public/bui
 | Sloupec | Typ | Popis |
 |---------|-----|-------|
 | entity_id | INTEGER FK | Odkaz na entities.id |
-| linked_type | TEXT | Typ propojení (document, contract, subsidy) |
+| linked_type | TEXT | Typ propojení (document, contract, subsidy, entity) |
 | linked_id | INTEGER | ID propojené entity |
-| role | TEXT | Role (publisher, counterparty, mentioned, recipient) |
+| role | TEXT | Role (publisher, counterparty, mentioned, recipient, statutory, chairman, vice_chairman, supervisory_member, council_member) |
 
 ---
 
@@ -385,6 +398,10 @@ npm run build                         # Jednorázový build CSS/JS do public/bui
 - **ARES**: `https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/` (bez auth, 500 req/min)
   - GET `/{ico}` — detail firmy
   - POST `/vyhledat` — vyhledávání dle názvu (parametry: `obchodniJmeno`, `pocet`, `start`)
+- **ARES VR**: `https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty-vr/{ico}`
+  - Statutory organs: `zaznamy[0].statutarniOrgany[].clenoveOrganu[]`
+  - Other organs: `zaznamy[0].ostatniOrgany[].clenoveOrganu[]`
+- **Volby.cz**: `https://www.volby.cz/pls/kv{rok}/kv21111` (HTML scraping, tabulka zvolených členů)
 
 ### Technologický stack
 
@@ -426,8 +443,8 @@ npm run build                         # Jednorázový build CSS/JS do public/bui
   - Dependency Injection: controllery přijímají services přes constructor
   - Tenké controllery: žádná business logika, pouze HTTP concerns
 - Eloquent modely s relacemi v `app/Models/`
-- Services v `app/Services/` (7 servisních tříd)
-- Controllers v `app/Http/Controllers/` (7 web + 2 API)
+- Services v `app/Services/` (9 servisních tříd)
+- Controllers v `app/Http/Controllers/` (9 web + 4 API)
 - Blade šablony v `resources/views/` s Tailwind CSS 4 + Alpine.js
 - Migrační soubory v `database/migrations/`
 - Artisan commands v `app/Console/Commands/`

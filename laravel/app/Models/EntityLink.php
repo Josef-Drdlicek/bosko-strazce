@@ -20,6 +20,7 @@ class EntityLink extends Model
             'document' => Document::find($this->linked_id),
             'contract' => Contract::find($this->linked_id),
             'subsidy' => Subsidy::find($this->linked_id),
+            'entity' => Entity::find($this->linked_id),
             default => null,
         };
     }
@@ -45,6 +46,9 @@ class EntityLink extends Model
             'tenant' => 'Nájemce',
             'implementor' => 'Realizátor',
             'funded_by' => 'Financováno z',
+            'chairman' => 'Předseda',
+            'vice_chairman' => 'Místopředseda',
+            'supervisory_member' => 'Člen kontrolního orgánu',
             default => $role,
         };
     }

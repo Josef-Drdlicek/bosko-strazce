@@ -16,6 +16,7 @@ class SignalService
             'contractConcentration' => $this->detectContractConcentration(),
             'subsidyConcentration' => $this->detectSubsidyConcentration(),
             'highValueContracts' => $this->detectHighValueContracts(),
+            'conflictsOfInterest' => $this->detectConflictsOfInterest(),
             'summary' => $this->getSignalSummary(),
         ];
     }
@@ -105,6 +106,79 @@ class SignalService
             ->orderByDesc('amount')
             ->limit($limit)
             ->get();
+    }
+
+    /**
+     * People who are both city council members AND hold statutory roles in companies
+     * that have contracts with the city.
+     *
+     * Cross-references by normalized name because the same person may have separate
+     * entity records from different sources (volby.cz vs ARES VR).
+     */
+    public function detectConflictsOfInterest(): Collection
+    {
+        $councilMembers = DB::table('entity_links as cm')
+            ->join('entities as person', 'person.id', '=', 'cm.entity_id')
+            ->where('cm.role', 'council_member')
+            ->where('person.entity_type', 'person')
+            ->select('person.id as person_id', 'person.name as person_name')
+            ->distinct()
+            ->get();
+
+        $statutoryPersons = DB::table('entity_links as sr')
+            ->join('entities as person', 'person.id', '=', 'sr.entity_id')
+            ->join('entities as company', 'company.id', '=', 'sr.linked_id')
+            ->where('sr.linked_type', 'entity')
+            ->whereIn('sr.role', ['statutory', 'chairman', 'vice_chairman', 'supervisory_member'])
+            ->select(
+                'person.id as person_id',
+                'person.name as person_name',
+                'company.id as company_id',
+                'company.name as company_name',
+                'company.ico as company_ico',
+                'sr.role as company_role',
+            )
+            ->get();
+
+        $statutoryByName = $statutoryPersons->groupBy(
+            fn ($item) => mb_strtolower($item->person_name),
+        );
+
+        $conflicts = collect();
+
+        foreach ($councilMembers as $member) {
+            $normalizedName = mb_strtolower($member->person_name);
+            $matches = $statutoryByName->get($normalizedName, collect());
+
+            foreach ($matches as $match) {
+                $contractStats = DB::table('entity_links')
+                    ->join('contracts', function ($join) {
+                        $join->on('entity_links.linked_id', '=', 'contracts.id')
+                            ->where('entity_links.linked_type', '=', 'contract');
+                    })
+                    ->where('entity_links.entity_id', $match->company_id)
+                    ->select(
+                        DB::raw('COUNT(DISTINCT contracts.id) as contract_count'),
+                        DB::raw('COALESCE(SUM(contracts.amount), 0) as total_amount'),
+                    )
+                    ->first();
+
+                $conflicts->push((object) [
+                    'person_id' => $member->person_id,
+                    'person_name' => $member->person_name,
+                    'company_id' => $match->company_id,
+                    'company_name' => $match->company_name,
+                    'company_ico' => $match->company_ico,
+                    'company_role' => $match->company_role,
+                    'company_role_label' => EntityLink::roleLabelFor($match->company_role),
+                    'contract_count' => $contractStats->contract_count ?? 0,
+                    'total_amount' => $contractStats->total_amount ?? 0,
+                    'severity' => ($contractStats->contract_count ?? 0) > 0 ? 'high' : 'low',
+                ]);
+            }
+        }
+
+        return $conflicts->sortByDesc('total_amount')->values();
     }
 
     public function getSignalSummary(): array

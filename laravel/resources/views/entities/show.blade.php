@@ -126,6 +126,50 @@
             </section>
         @endif
 
+        @if($relatedEntities->isNotEmpty() || $reverseEntityLinks->isNotEmpty())
+            <section class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-6 sm:p-8">
+                <h2 class="flex items-center gap-2 text-lg font-bold text-slate-900 mb-5">
+                    <svg class="h-5 w-5 text-violet-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/></svg>
+                    Propojené subjekty
+                    <span class="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">{{ $relatedEntities->count() + $reverseEntityLinks->count() }}</span>
+                </h2>
+                <div class="divide-y divide-slate-100">
+                    @foreach($relatedEntities as $related)
+                        <a href="{{ route('entities.show', $related) }}" class="block py-3 hover:bg-slate-50/80 transition-colors -mx-2 px-2 rounded-lg">
+                            <div class="flex items-center justify-between gap-4">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <span class="inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium {{ $related->entity_type === 'person' ? 'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20' : ($related->entity_type === 'city_body' ? 'bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20' : 'bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-500/10') }}">
+                                        {{ $related->entity_type }}
+                                    </span>
+                                    <p class="text-sm font-semibold text-slate-900 truncate">{{ $related->name }}</p>
+                                </div>
+                                @if($entityRoles->has($related->id))
+                                    <span class="shrink-0 inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-600/20">
+                                        {{ \App\Models\EntityLink::roleLabelFor($entityRoles->get($related->id)) }}
+                                    </span>
+                                @endif
+                            </div>
+                        </a>
+                    @endforeach
+                    @foreach($reverseEntityLinks as $reverseLink)
+                        <a href="{{ route('entities.show', $reverseLink->entity) }}" class="block py-3 hover:bg-slate-50/80 transition-colors -mx-2 px-2 rounded-lg">
+                            <div class="flex items-center justify-between gap-4">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <span class="inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium {{ $reverseLink->entity->entity_type === 'person' ? 'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20' : 'bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-500/10' }}">
+                                        {{ $reverseLink->entity->entity_type }}
+                                    </span>
+                                    <p class="text-sm font-semibold text-slate-900 truncate">{{ $reverseLink->entity->name }}</p>
+                                </div>
+                                <span class="shrink-0 inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-600/20">
+                                    {{ $reverseLink->role_label }}
+                                </span>
+                            </div>
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
         @if($timeline->isNotEmpty())
             <section class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 p-6 sm:p-8">
                 <h2 class="flex items-center gap-2 text-lg font-bold text-slate-900 mb-5">

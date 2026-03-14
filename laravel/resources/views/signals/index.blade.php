@@ -189,6 +189,73 @@
             </section>
         @endif
 
+        <section>
+            <div class="flex items-center gap-3 mb-4">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 text-white shadow-lg shadow-violet-200">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/></svg>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900">Možné střety zájmů</h2>
+                    <p class="text-sm text-slate-500">Zastupitelé, kteří jsou zároveň statutáři firem se zakázkami města</p>
+                </div>
+            </div>
+
+            @if($conflictsOfInterest->isNotEmpty())
+                <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 overflow-hidden">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead>
+                            <tr class="bg-slate-50/50">
+                                <th class="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Osoba</th>
+                                <th class="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Firma</th>
+                                <th class="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Pozice ve firmě</th>
+                                <th class="px-5 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Smluv města s firmou</th>
+                                <th class="px-5 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Celkem za smlouvy</th>
+                                <th class="px-5 py-3.5 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Závažnost</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @foreach($conflictsOfInterest as $conflict)
+                                <tr class="hover:bg-slate-50/80 transition-colors">
+                                    <td class="px-5 py-3.5">
+                                        <a href="{{ route('entities.show', $conflict->person_id) }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
+                                            {{ $conflict->person_name }}
+                                        </a>
+                                        <p class="text-xs text-slate-400">Zastupitel</p>
+                                    </td>
+                                    <td class="px-5 py-3.5">
+                                        <a href="{{ route('entities.show', $conflict->company_id) }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
+                                            {{ $conflict->company_name }}
+                                        </a>
+                                        @if($conflict->company_ico)
+                                            <p class="text-xs text-slate-400 font-mono">{{ $conflict->company_ico }}</p>
+                                        @endif
+                                    </td>
+                                    <td class="px-5 py-3.5 text-sm text-slate-600">{{ $conflict->company_role_label }}</td>
+                                    <td class="px-5 py-3.5 text-sm text-slate-600 text-right tabular-nums">{{ $conflict->contract_count }}</td>
+                                    <td class="px-5 py-3.5 text-right">
+                                        <span class="text-sm font-bold text-slate-900 tabular-nums">
+                                            {{ number_format($conflict->total_amount, 0, ',', "\u{00a0}") }}&nbsp;CZK
+                                        </span>
+                                    </td>
+                                    <td class="px-5 py-3.5 text-center">
+                                        @if($conflict->severity === 'high')
+                                            <span class="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-600/20">Vysoká</span>
+                                        @else
+                                            <span class="inline-flex items-center rounded-full bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10">Kontrola</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 px-5 py-16 text-center">
+                    <p class="text-sm text-slate-400">Nebyly detekovány žádné možné střety zájmů.</p>
+                </div>
+            @endif
+        </section>
+
         <div class="rounded-2xl bg-amber-50 ring-1 ring-inset ring-amber-200 p-6">
             <div class="flex gap-3">
                 <svg class="h-5 w-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/></svg>

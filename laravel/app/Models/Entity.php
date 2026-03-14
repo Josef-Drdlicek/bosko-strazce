@@ -36,6 +36,21 @@ class Entity extends Model
         return $this->hasMany(EntityLink::class)->where('linked_type', 'subsidy');
     }
 
+    public function entityLinks(): HasMany
+    {
+        return $this->hasMany(EntityLink::class)->where('linked_type', 'entity');
+    }
+
+    public function isPerson(): bool
+    {
+        return $this->entity_type === 'person';
+    }
+
+    public function isOrganization(): bool
+    {
+        return $this->entity_type === 'organization';
+    }
+
     public function scopeSearch($query, string $term)
     {
         return $query->where(function ($q) use ($term) {

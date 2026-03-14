@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Contract;
 use App\Models\Document;
 use App\Models\Entity;
+use App\Models\EntityLink;
 use App\Models\Subsidy;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -48,15 +49,23 @@ class EntityService
         $documentRoles = $this->buildRoleMap($grouped->get('document'));
         $subsidyRoles = $this->buildRoleMap($grouped->get('subsidy'));
 
+        $relatedEntities = $this->resolveLinked(Entity::class, $grouped->get('entity'));
+        $entityRoles = $this->buildRoleMap($grouped->get('entity'));
+
+        $reverseEntityLinks = $this->buildReverseEntityLinks($entity);
+
         return [
             'entity' => $entity,
             'links' => $links,
             'documents' => $this->resolveLinked(Document::class, $grouped->get('document')),
             'contracts' => $contracts,
             'subsidies' => $subsidies,
+            'relatedEntities' => $relatedEntities,
+            'reverseEntityLinks' => $reverseEntityLinks,
             'contractRoles' => $contractRoles,
             'documentRoles' => $documentRoles,
             'subsidyRoles' => $subsidyRoles,
+            'entityRoles' => $entityRoles,
             'aggregated' => $this->buildAggregatedStats($contracts, $subsidies),
             'timeline' => $this->buildTimeline($contracts, $subsidies),
         ];
@@ -91,8 +100,22 @@ class EntityService
             'document' => Document::whereIn('id', $ids)->get()->keyBy('id'),
             'contract' => Contract::whereIn('id', $ids)->get()->keyBy('id'),
             'subsidy' => Subsidy::whereIn('id', $ids)->get()->keyBy('id'),
+            'entity' => Entity::whereIn('id', $ids)->get()->keyBy('id'),
             default => collect(),
         };
+    }
+
+    private function buildReverseEntityLinks(Entity $entity): Collection
+    {
+        return EntityLink::where('linked_type', 'entity')
+            ->where('linked_id', $entity->id)
+            ->with('entity')
+            ->get()
+            ->map(fn (EntityLink $link) => (object) [
+                'entity' => $link->entity,
+                'role' => $link->role,
+                'role_label' => $link->role_label,
+            ]);
     }
 
     private function buildRoleMap(?Collection $links): Collection

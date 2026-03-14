@@ -59,54 +59,54 @@ Implementované vztahy (`entity_links`):
 
 ---
 
-## 2. Rozšířit doménový model (nové typy entit)
+## 2. ~~Rozšířit doménový model (nové typy entit)~~ ✅ ČÁSTEČNĚ HOTOVO
 
-Chybějící typy entit, které je třeba přidat do DB + Eloquent modelů:
+Implementované entity:
 
-| Entita | Popis | Zdroj dat |
-|--------|-------|-----------|
-| **Osoba (fyzická)** | Zastupitelé, radní, členové komisí, statutáři firem | Volby.cz, Justice.cz, zápisy ZM/RM |
-| **Orgán města** | Zastupitelstvo, rada, komise, výbory | Web města, zápisy ZM/RM |
-| **Projekt / akce** | Investiční akce, projekty města | Dokumenty, rozpočty, dotace |
-| **Nemovitost** | Parcely, budovy dotčené projekty | RÚIAN/ČÚZK |
-| **Událost** | Hlasování, schválení, zahájení stavby | Zápisy ZM/RM |
+| Entita | Typ | Stav | Zdroj |
+|--------|-----|------|-------|
+| **Osoba (fyzická)** | `person` | ✅ 1 117 osob | ARES VR (statutáři), Volby.cz (zastupitelé) |
+| **Orgán města** | `city_body` | ✅ 1 entita | Volby.cz (Zastupitelstvo města Boskovice) |
+| **Projekt / akce** | `project` | ❌ TODO | Dokumenty, rozpočty, dotace |
+| **Nemovitost** | `property` | ❌ TODO | RÚIAN/ČÚZK |
+| **Událost** | `event` | ❌ TODO | Zápisy ZM/RM |
 
-Nové typy vztahů:
+Implementované vztahy (`entity_links` s `linked_type='entity'`):
 
-| Vztah | Popis |
-|-------|-------|
-| osoba → firma | statutár, společník, jednatel |
-| osoba → orgán města | zastupitel, radní, člen komise |
-| projekt → smlouva / dotace | financován, realizován |
-| projekt → nemovitost | realizován na parcele/adrese |
-| firma/osoba → nemovitost | vlastník, nájemce |
-| událost → subjekt / dokument | hlasoval, rozhodl, podal žádost |
+| Vztah | Role | Stav |
+|-------|------|------|
+| osoba → firma | `statutory`, `chairman`, `vice_chairman`, `supervisory_member` | ✅ 884 vazeb |
+| osoba → orgán města | `council_member` | ✅ 51 vazeb |
+| projekt → smlouva / dotace | `implementor`, `funded_by` | ❌ TODO |
+| firma/osoba → nemovitost | `owner`, `tenant` | ❌ TODO |
 
-Implementace:
-- [ ] Přidat `entity_type` hodnoty: `person`, `city_body`, `project`, `property`, `event`
-- [ ] Přidat `role` hodnoty do `entity_links`
-- [ ] Přidat Eloquent scope/filtr pro nové typy
-- [ ] Aktualizovat UI: detail entity zobrazí role specificky (statutár vs. dodavatel vs. zastupitel)
+- [x] Přidat `entity_type` hodnoty: `person`, `city_body`
+- [x] Přidat `role` hodnoty do `entity_links`
+- [x] Přidat Eloquent scope/filtr pro nové typy
+- [x] Aktualizovat UI: detail entity zobrazí role specificky + propojené subjekty
+- [ ] Přidat `entity_type` hodnoty: `project`, `property`, `event` (TODO)
 
 ---
 
-## 3. Integrace dalších registrů
+## 3. ~~Integrace dalších registrů~~ ✅ ČÁSTEČNĚ HOTOVO
 
-### Justice.cz / obchodní rejstřík
+### ~~Justice.cz / obchodní rejstřík~~ ✅ HOTOVO (via ARES VR)
 
 - Cíl: navázat osoby (statutáři, vlastníci) na firmy
 - Vztahy: osoba –[statutár]→ firma, osoba –[společník]→ firma
-- [ ] Implementovat `JusticeCollector` (HTML scraping nebo API)
-- [ ] Vytvořit entity typu `person` pro statutáry
-- [ ] Propojit s existujícími firmami v `entities`
+- [x] Implementován `JusticeCollector` (`src/collectors/justice.py`) — data z ARES VR API
+- [x] Vytvořeno 1 126 osob typu `person` jako aktuální statutáři firem
+- [x] Propojeno s existujícími firmami v `entities` (884 vazeb statutory/chairman/vice_chairman/supervisory)
+- [x] CLI příkaz: `python main.py collect-persons`
 
-### Volby.cz + Evidence veřejných funkcionářů
+### ~~Volby.cz + Evidence veřejných funkcionářů~~ ✅ HOTOVO
 
 - Cíl: přehled veřejných funkcí osob, které se objevují ve firmách či smlouvách
-- Vztahy: osoba –[zastupitel/radní]→ orgán města
-- [ ] Implementovat `VolbyCollector`
-- [ ] Vytvořit entity typu `person` a `city_body`
-- [ ] Propojit osoby s firmami (cross-reference IČO, jména)
+- Vztahy: osoba –[zastupitel]→ orgán města
+- [x] Implementován `VolbyCollector` (`src/collectors/volby.py`) — scraping volby.cz
+- [x] 27 zastupitelů × 3 volební období (2014, 2018, 2022) = 81 vazeb
+- [x] Entita `Zastupitelstvo města Boskovice` typu `city_body`
+- [x] CLI příkaz: `python main.py collect-volby`
 
 ### RÚIAN / ČÚZK
 
@@ -135,12 +135,14 @@ Implementace:
 - [ ] Implementovat detekci sekvencí
 - [ ] Přidat „case view" s timeline vizualizací
 
-### Možné střety zájmů
+### ~~Možné střety zájmů~~ ✅ HOTOVO
 
-- Osoba je na straně města (zastupitel/radní) A zároveň má roli ve firmě s zakázkami
-- Systém označí „možný střet zájmů – zkontroluj" s odkazy na zdroje
-- [ ] Implementovat cross-referencing osob: veřejná funkce vs. role ve firmě
-- [ ] Vizualizace na detailu osoby
+- [x] Cross-referencing zastupitelů × statutářů firem se zakázkami města
+- [x] Detekce na základě case-insensitive name matching (osoby z volby.cz vs ARES VR)
+- [x] 16 detekovaných možných střetů zájmů
+- [x] Zobrazení na stránce `/signals` s odkazem na osobu i firmu
+- [x] Závažnost: high = firma má smlouvy s městem, low = bez smluv
+- [x] Propojené subjekty zobrazeny na detailu entity
 
 ---
 
